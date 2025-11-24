@@ -1,0 +1,84 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select/index.js'
+import {
+    Avatar,
+    AvatarImage,
+} from '@/components/ui/avatar'
+import Button from './ui/button/Button.vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+const avaliableCOMSs = ref([3, 4, 12, 14]);
+const BaudRates = ref([9600, 115200]);
+
+const GoToSettings = () => {
+    router.push('/Settings');
+}
+
+</script>
+
+<template>
+    <div class="flex w-full h-1/10 dark:bg-[#3f3f3f]/20 dark:text-white bg-[#f9f0f3]/20 items-center justify-between">
+
+        <div id="topleft" class="flex items-center h-full opacity-100">
+            <div class="mx-2 rounded-full h-4/5 aspect-square justify-center items-center bg-white dark:bg-[#3a3838] cursor-pointer" @click="GoToSettings">
+
+                <Avatar class="flex" >
+                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                </Avatar>
+
+
+            </div>
+            <div id="select-com" class="mx-2">
+                <Select>
+                    <SelectTrigger class="w-[180px]">
+                        <SelectValue placeholder="Select COM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            <SelectLabel>Available COM</SelectLabel>
+                            <SelectItem :value=comvalue v-for="comvalue in avaliableCOMSs">
+                                COM {{ comvalue }}
+                            </SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div id="select-baud" class="mx-2">
+                <Select>
+                    <SelectTrigger class="w-[180px]">
+                        <SelectValue placeholder="Baud Rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectGroup>
+                            <SelectLabel>Available COM</SelectLabel>
+                            <SelectItem :value=baud v-for="baud in BaudRates">
+                                {{ baud }}
+                            </SelectItem>
+                        </SelectGroup>
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button>Start</Button>
+        </div>
+
+        <div id="topright" class="flex">
+            <input type="text" placeholder="Serial Input"></input>
+            <div class="flex">
+                <Button>Send</Button>
+            </div>
+        </div>
+
+    </div>
+</template>
+
+<style scoped></style>

@@ -12,9 +12,17 @@
   "app": {
     "windows": [
       {
-        "title": "artemis",
-        "width": 800,
-        "height": 600
+        "center": true,
+        "visible": true,
+        "decorations": true,
+        "title": "Artemis",
+        "width": 1280,
+        "height": 720,
+        "transparent": true,
+        "windowEffects": {
+            "effects": ["hudWindow", "mica"],
+            "radius": 12
+        }
       }
     ],
     "security": {

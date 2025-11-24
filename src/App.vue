@@ -1,20 +1,24 @@
-<script setup lang="ts">
-// import { ref } from "vue";
-// import { invoke } from "@tauri-apps/api/core";
+<script setup>
+import { ref } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 
-// const greetMsg = ref("");
-// const name = ref("");
+import Header from "./components/Header.vue";
+import Logger from "./components/Logger.vue";
+import Controls from "./components/Controls.vue";
 
-// async function greet() {
-//   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-//   greetMsg.value = await invoke("greet", { name: name.value });
-// }
-import { Button } from '@/components/ui/button'
+const greetMsg = ref("");
+const name = ref("");
+
+async function greet() {
+  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+  greetMsg.value = await invoke("greet", { name: name.value });
+}
 </script>
 
 <template>
-  <h1 class="text-3xl font-bold underline bg-red-400">
-    Hello world!
-  </h1>
-  <Button>Click me</Button>
+  <div class="w-screen h-screen flex flex-col">
+    <!-- <Title /> -->
+    <RouterView />
+    
+  </div>
 </template>
