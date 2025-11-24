@@ -14,6 +14,8 @@ import {
     Avatar,
     AvatarImage,
 } from '@/components/ui/avatar'
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
+
 import Button from './ui/button/Button.vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -30,9 +32,10 @@ const GoToSettings = () => {
     <div class="flex w-full h-1/10 dark:bg-[#3f3f3f]/20 dark:text-white bg-[#f9f0f3]/20 items-center justify-between">
 
         <div id="topleft" class="flex items-center h-full opacity-100">
-            <div class="mx-2 rounded-full h-4/5 aspect-square justify-center items-center bg-white dark:bg-[#3a3838] cursor-pointer" @click="GoToSettings">
+            <div class="mx-2 rounded-full h-4/5 aspect-square justify-center items-center bg-white dark:bg-[#3a3838] cursor-pointer"
+                @click="GoToSettings">
 
-                <Avatar class="flex" >
+                <Avatar class="flex">
                     <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
                 </Avatar>
 
@@ -68,14 +71,18 @@ const GoToSettings = () => {
                     </SelectContent>
                 </Select>
             </div>
-            <Button>Start</Button>
+            <Button>Open COM</Button>
         </div>
 
-        <div id="topright" class="flex">
-            <input type="text" placeholder="Serial Input"></input>
-            <div class="flex">
-                <Button>Send</Button>
-            </div>
+        <div id="topright" class="flex justify-start mx-5">
+            <InputGroup>
+                    <InputGroupInput placeholder="Send to COM..." />
+                    <InputGroupAddon align="inline-end">
+                        <InputGroupButton variant="secondary">
+                            Send
+                        </InputGroupButton>
+                    </InputGroupAddon>
+                </InputGroup>
         </div>
 
     </div>

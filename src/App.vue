@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import Header from "./components/Header.vue";
 import Logger from "./components/Logger.vue";
-import Controls from "./components/Controls.vue";
+import ControlsBottom from "./components/ControlsBottom.vue";
 
 const greetMsg = ref("");
 const name = ref("");
