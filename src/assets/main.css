@@ -129,6 +129,20 @@
   }
 }
 
+@layer utilities {
+    .custom-selection {
+        ::selection {
+            @apply bg-[#7cd07c] text-[#ebebeb];
+        }
+        
+        .dark & {
+            ::selection {
+                @apply bg-[#847CD0] text-[#ebebeb];
+            }
+        }
+    }
+}
+
 @font-face {
   font-family: "fusion";
   font-style: normal;

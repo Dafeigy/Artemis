@@ -1,51 +1,43 @@
 <script setup>
 import { ref } from 'vue'
 
-const Loginfo = 
-ref(`
-  import type { AvatarFallbackProps } from "reka-ui"
-  import type { HTMLAttributes } from "vue"
-  import { reactiveOmit } from "@vueuse/core"
-  import { AvatarFallback } from "reka-ui"
-  import { cn } from "@/lib/utils"
+// 生成串口信息测试数据
+const genSerialInfo = () => {
+  const logContainer = document.getElementById('log-container')
+  if (!logContainer) return
+  
+  // 测试数据数组
+  const testData = [
+    '{"command": "READ_STATUS", "status": "CONNECTED", "device": "COM3", "baudrate": 9600}',
+    '{"command": "READ_CONFIG", "config": {"mode": "MASTER", "address": 1}}',
+    '{"command": "DATA_TRANSFER", "direction": "RECEIVE", "bytes": 16}',
+    '{"command": "ERROR", "code": "E01", "message": "Timeout error"}',
+    '{"command": "CLOSE_PORT", "status": "SUCCESS", "device": "COM3"}'
+  ]
+  
+  // 添加5个pre标签
+  testData.forEach((data, index) => {
+    const pre = document.createElement('pre')
+    pre.textContent = data
+    pre.className = 'mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded'
+    logContainer.appendChild(pre)
+  })
+  
+  // 自动滚动到底部
+  logContainer.scrollTop = logContainer.scrollHeight
+}
 
-  const props = defineProps<AvatarFallbackProps & { class?: HTMLAttributes["class"] }>()
-
-  const delegatedProps = reactiveOmit(props, "class")
-  <template>
-    <AvatarFallback
-      data-slot="avatar-fallback"
-      v-bind="delegatedProps"
-      :class="cn('bg-muted flex size-full items-center justify-center rounded-full', props.class)"
-    >
-      <slot />
-    </AvatarFallback>
-  </template>
-  import type { AvatarFallbackProps } from "reka-ui"
-  import type { HTMLAttributes } from "vue"
-  import { reactiveOmit } from "@vueuse/core"
-  import { AvatarFallback } from "reka-ui"
-  import { cn } from "@/lib/utils"
-
-  const props = defineProps<AvatarFallbackProps & { class?: HTMLAttributes["class"] }>()
-
-  const delegatedProps = reactiveOmit(props, "class")
-  <template>
-    <AvatarFallback
-      data-slot="avatar-fallback"
-      v-bind="delegatedProps"
-      :class="cn('bg-muted flex size-full items-center justify-center rounded-full', props.class)"
-    >
-      <slot />
-    </AvatarFallback>
-  </template>
-  `)
+// 清空串口信息
+const clearSerialInfo = () => {
+  const logContainer = document.getElementById('log-container')
+  if (logContainer) {
+    logContainer.innerHTML = ''
+  }
+}
 </script>
 <template>
-  <div class="p-4 overflow-auto h-full" id="log-container">
-    <pre>
-      {{ Loginfo }}
-    </pre>
+  <div class="p-4 overflow-auto h-full custom-selection" id="log-container">
+    
   </div>
 </template>
 
@@ -60,15 +52,15 @@ pre:hover {
 
 
 
-*.dark::selection {
-    background: #847CD0; /* 粉红色的底色 */
-    color: #ebebeb; /* 文字的颜色 */
-}
+
 ::selection {
     background: #7cd07c; /* 粉红色的底色 */
     color: #ebebeb; /* 文字的颜色 */
 }
-
+*.dark::selection {
+    background: #847CD0; /* 粉红色的底色 */
+    color: #ebebeb; /* 文字的颜色 */
+}
 #log-container::-webkit-scrollbar {
   height: 6px;
   margin: 0 12px;
