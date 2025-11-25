@@ -41,10 +41,20 @@ const Loginfo = ref(`
   `)
 </script>
 <template>
-  <header class=" opacity-50 p-4 h-full overflow-auto">
+  <div class=" p-4 overflow-auto dark:bg-[#3f3f3f]/90 dark:text-white bg-[#f9f0f3]/90">
     <h1 class="text-2xl font-bold">Loginfo</h1>
     <pre>
       {{ Loginfo }}
     </pre>
-  </header>
+  </div>
 </template>
+
+<style scoped>
+pre {  
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+pre:hover {  
+  scrollbar-color: #333 transparent;
+}
+</style>

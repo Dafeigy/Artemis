@@ -9,7 +9,9 @@ const mode = useColorMode();
 </script>
 
 <template>
-    <Header />
-    <Logger />
-    <ControlsBottom />
+    <div class="flex w-full h-full flex-col justify-center">
+        <Header />
+        <Logger />
+        <ControlsBottom />
+    </div>
 </template>

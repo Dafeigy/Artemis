@@ -9,6 +9,10 @@
     cursor: pointer;
   }
 }
+
+@theme{
+  --font-display: "depature", "fusion", "sans-serif";
+}
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -115,7 +119,7 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
-
+/* 
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -123,4 +127,20 @@
   body {
     @apply bg-background text-foreground;
   }
+} */
+
+@font-face {
+  font-family: "fusion";
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url("fusion-pixel.woff2") format('woff2');
+}
+
+@font-face {
+  font-family: "depature";
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+  src: url("DepartureMono-Regular.woff2") format('woff2');
 }
