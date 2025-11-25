@@ -29,17 +29,11 @@ const GoToSettings = () => {
 </script>
 
 <template>
-    <div class="flex w-full dark:bg-[#291b1e]/80 dark:text-white bg-[#f9f0f3]/60 items-center justify-between max-h-[72px]">
-
+    <div class="flex w-full items-center justify-between max-h-[96px]">
         <div id="topleft" class="flex items-center h-full opacity-100">
-            <div class="mx-2 rounded-full h-4/5 aspect-square justify-center items-center bg-white dark:bg-[#3a3838] cursor-pointer"
+            <div class="mx-2 h-3/5 aspect-square justify-center items-center cursor-pointer rounded-full"
                 @click="GoToSettings">
-
-                <Avatar class="flex">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                </Avatar>
-
-
+                <img src="https://pic1.imgdb.cn/item/692572533203f7be003184ae.png" alt="" class="rounded-full">
             </div>
             <div id="select-com" class="mx-2">
                 <Select>

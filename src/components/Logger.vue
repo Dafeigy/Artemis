@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 
-const Loginfo = ref(`
+const Loginfo = 
+ref(`
   import type { AvatarFallbackProps } from "reka-ui"
   import type { HTMLAttributes } from "vue"
   import { reactiveOmit } from "@vueuse/core"
@@ -41,8 +42,7 @@ const Loginfo = ref(`
   `)
 </script>
 <template>
-  <div class=" p-4 overflow-auto dark:bg-[#291b1e]/80 dark:text-[#e4c8c1] bg-[#f9f0f3]/20">
-    <h1 class="text-2xl font-bold">Loginfo</h1>
+  <div class=" p-4 overflow-auto " id="log-container">
     <pre>
       {{ Loginfo }}
     </pre>
@@ -55,6 +55,44 @@ pre {
   transition: scrollbar-color 0.2s ease;
 }
 pre:hover {  
-  scrollbar-color: #333 transparent;
+  scrollbar-color: #c5c5c5 transparent;
+}
+
+
+
+*.dark::selection {
+    background: #847CD0; /* 粉红色的底色 */
+    color: #ebebeb; /* 文字的颜色 */
+}
+::selection {
+    background: #7cd07c; /* 粉红色的底色 */
+    color: #ebebeb; /* 文字的颜色 */
+}
+
+#log-container::-webkit-scrollbar {
+  height: 6px;
+  margin: 0 12px;
+}
+#log-container::-webkit-scrollbar-track {
+  background-color: #2a2b2d;
+  border-radius: 3px;
+}
+
+#log-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+#log-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+#log-container {  
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+#log-container:hover {  
+  scrollbar-color: #d3d3d3 transparent;
 }
 </style>

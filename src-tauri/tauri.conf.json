@@ -20,7 +20,7 @@
         "height": 720,
         "transparent": true,
         "windowEffects": {
-            "effects": ["hudWindow","acrylic", "mica"],
+            "effects": ["hudWindow","mica","acrylic"],
             "radius": 12
         }
       }
