@@ -10,7 +10,7 @@ const BackToHome = () => {
 };
 </script>
 <template>
-  <div class="w-full flex flex-col justify-center px-4">
+  <div class="w-full flex flex-col justify-center px-4 h-7/8">
     <div
       id="settings-title"
       class="w-full text-xl font-bold h-1/8 flex items-center mx-4 my-4"
@@ -31,15 +31,10 @@ const BackToHome = () => {
       <div class="w-full h-1/3 flex flex-col justify-center">
         <SelectMode />
       </div>
+      <div class="">
+        <ToggleMode />
+      </div>
+      <Button @click="BackToHome">Back to Home</Button>
     </div>
-  </div>
-  <div
-    id="settings"
-    class="h-full w-full flex flex-col justify-center items-center"
-  >
-    <div class="mb-4">
-      <ToggleMode />
-    </div>
-    <Button @click="BackToHome">Back to Home</Button>
   </div>
 </template>
