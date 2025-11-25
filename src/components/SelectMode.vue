@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 const mode = useColorMode()
 </script>
 <template>
-    <RadioGroup default-value="auto">    
+    <RadioGroup >    
 
         <div class="flex items-center space-x-2">
           <RadioGroupItem id="r1" value="light" @click="mode = 'light'"/>

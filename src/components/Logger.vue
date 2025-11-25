@@ -41,7 +41,7 @@ const Loginfo = ref(`
   `)
 </script>
 <template>
-  <div class=" p-4 overflow-auto dark:bg-[#3f3f3f]/90 dark:text-white bg-[#f9f0f3]/90">
+  <div class=" p-4 overflow-auto dark:bg-[#291b1e]/80 dark:text-[#e4c8c1] bg-[#f9f0f3]/20">
     <h1 class="text-2xl font-bold">Loginfo</h1>
     <pre>
       {{ Loginfo }}

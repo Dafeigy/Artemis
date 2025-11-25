@@ -29,7 +29,7 @@ const GoToSettings = () => {
 </script>
 
 <template>
-    <div class="flex w-full dark:bg-[#3f3f3f]/60 dark:text-white bg-[#f9f0f3]/60 items-center justify-between max-h-[72px]">
+    <div class="flex w-full dark:bg-[#291b1e]/80 dark:text-white bg-[#f9f0f3]/60 items-center justify-between max-h-[72px]">
 
         <div id="topleft" class="flex items-center h-full opacity-100">
             <div class="mx-2 rounded-full h-4/5 aspect-square justify-center items-center bg-white dark:bg-[#3a3838] cursor-pointer"
