@@ -10,10 +10,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select/index.js'
-import {
-    Avatar,
-    AvatarImage,
-} from '@/components/ui/avatar'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 
 import Button from './ui/button/Button.vue';

@@ -42,7 +42,7 @@ ref(`
   `)
 </script>
 <template>
-  <div class=" p-4 overflow-auto " id="log-container">
+  <div class="p-4 overflow-auto h-full" id="log-container">
     <pre>
       {{ Loginfo }}
     </pre>
@@ -93,6 +93,6 @@ pre:hover {
   transition: scrollbar-color 0.2s ease;
 }
 #log-container:hover {  
-  scrollbar-color: #d3d3d3 transparent;
+  scrollbar-color: #d3d3d345 transparent;
 }
 </style>
