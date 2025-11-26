@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select/index.js'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
+import InlineSettings from './InlineSettings.vue';
 
 import Button from './ui/button/Button.vue';
 import { useRouter } from 'vue-router';
@@ -18,10 +19,13 @@ const router = useRouter();
 const avaliableCOMSs = ref([3, 4, 12, 14]);
 const BaudRates = ref([9600, 115200]);
 
-const GoToSettings = () => {
-    router.push('/Settings');
-}
+// const GoToSettings = () => {
+//     router.push('/Settings');
+// }
 
+const GoToSettings = () => {
+    // router.push('/Settings');
+}
 </script>
 
 <template>
@@ -29,7 +33,7 @@ const GoToSettings = () => {
         <div id="topleft" class="flex items-center h-full opacity-100">
             <div class="mx-2 h-3/5 aspect-square justify-center items-center cursor-pointer rounded-full"
                 @click="GoToSettings">
-                <img src="https://pic1.imgdb.cn/item/692572533203f7be003184ae.png" alt="" class="rounded-full">
+                <InlineSettings />
             </div>
             <div id="select-com" class="mx-2">
                 <Select>

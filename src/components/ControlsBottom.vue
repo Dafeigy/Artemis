@@ -2,7 +2,8 @@
 import Button
 from './ui/button/Button.vue';
 import Label from './ui/label/Label.vue';
-
+import { Save } from 'lucide-vue-next';
+import { exportLogs, notificationService } from '../lib/utils';
 // 生成串口信息测试数据
 const genSerialInfo = ()=>{
   const logContainer = document.getElementById('log-container');
@@ -36,9 +37,24 @@ const clearSerialInfo = ()=>{
     logContainer.innerHTML = '';
   }
 }
+
+// 导出日志
+const handleExportLogs = async () => {
+  const success = await exportLogs();
+  if (success) {
+    notificationService.success('导出成功', '日志已成功导出到指定文件');
+  } else {
+    notificationService.error('导出失败', '日志导出失败或用户取消了操作');
+  }
+}
 </script>
 <template>
-    <div class="justify-end flex w-full h-1/20 items-center max-h-[32px]">
+    <div class="justify-between flex w-full h-1/20 items-center max-h-[32px]">
+      <div id="functions" class="flex justify-start text-xs">
+        <Button variant="ghost" size="xs" class="px-2 py-1 text-gray-500 italic" @click="handleExportLogs" title="导出日志">
+          <Save />
+        </Button>
+      </div>
         <div class="">
             <span class="text-xs mx-2 dark:text-white text-gray-500 select-none">0-3630</span>
             <Button variant="ghost" size="xs" class="text-xs dark:text-white text-gray-500 px-4 py-2 italic" @click="genSerialInfo">Generate</Button>

@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import Header from "./components/Header.vue";
 import Logger from "./components/Logger.vue";
 import ControlsBottom from "./components/ControlsBottom.vue";
+import Notification from "./components/Notification.vue";
 
 const greetMsg = ref("");
 const name = ref("");
@@ -19,6 +20,6 @@ async function greet() {
   <div class="w-screen h-screen flex flex-col">
     <!-- <Title /> -->
     <RouterView />
-    
+    <Notification />
   </div>
 </template>
