@@ -49,18 +49,6 @@ pre {
 pre:hover {  
   scrollbar-color: #c5c5c5 transparent;
 }
-
-
-
-
-::selection {
-    background: #7cd07c; /* 粉红色的底色 */
-    color: #ebebeb; /* 文字的颜色 */
-}
-*.dark::selection {
-    background: #847CD0; /* 粉红色的底色 */
-    color: #ebebeb; /* 文字的颜色 */
-}
 #log-container::-webkit-scrollbar {
   height: 6px;
   margin: 0 12px;

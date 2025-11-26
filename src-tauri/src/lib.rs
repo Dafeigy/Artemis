@@ -1,7 +1,35 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use serialport::available_ports;
+use serde::{Deserialize, Serialize};
+
+// COM端口信息结构体
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PortInfo {
+    pub name: String,
+    pub port_type: String,
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+/// 获取可用的COM端口列表
+#[tauri::command]
+fn get_available_ports() -> Result<Vec<PortInfo>, String> {
+    match available_ports() {
+        Ok(ports) => {
+            let port_infos: Vec<PortInfo> = ports
+                .iter()
+                .map(|port| PortInfo {
+                    name: port.port_name.clone(),
+                    port_type: format!("{:?}", port.port_type),
+                })
+                .collect();
+            Ok(port_infos)
+        }
+        Err(e) => Err(format!("Failed to list serial ports: {}", e)),
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -10,7 +38,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, get_available_ports])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { invoke } from "@tauri-apps/api/core";
 
 import {
     Select,
@@ -12,12 +13,33 @@ import {
 } from '@/components/ui/select/index.js'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import InlineSettings from './InlineSettings.vue';
-
 import Button from './ui/button/Button.vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
-const avaliableCOMSs = ref([3, 4, 12, 14]);
+
+// 定义PortInfo接口
+interface PortInfo {
+    name: string;
+    port_type: string;
+}
+
+const avaliableCOMSs = ref<PortInfo[]>([]);
 const BaudRates = ref([9600, 115200]);
+
+// 获取可用COM端口列表
+const fetchAvailablePorts = async () => {
+    try {
+        const ports = await invoke<PortInfo[]>('get_available_ports');
+        avaliableCOMSs.value = ports;
+    } catch (error) {
+        console.error('Failed to fetch COM ports:', error);
+        // 如果获取失败，使用默认值
+        avaliableCOMSs.value = [{ name: 'COM3', port_type: 'USB' }, { name: 'COM4', port_type: 'USB' }];
+    }
+};
+
+// 组件挂载时获取COM端口列表
+onMounted(() => {
+    fetchAvailablePorts();
+});
 
 // const GoToSettings = () => {
 //     router.push('/Settings');
@@ -43,8 +65,8 @@ const GoToSettings = () => {
                     <SelectContent>
                         <SelectGroup>
                             <SelectLabel>Available COM</SelectLabel>
-                            <SelectItem :value=comvalue v-for="comvalue in avaliableCOMSs">
-                                COM {{ comvalue }}
+                            <SelectItem :value=com.name v-for="com in avaliableCOMSs" :key="com.name">
+                                {{ com.name }} ({{ com.port_type }})
                             </SelectItem>
                         </SelectGroup>
                     </SelectContent>

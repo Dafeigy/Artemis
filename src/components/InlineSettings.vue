@@ -41,7 +41,7 @@ import SelectMode from "./SelectMode.vue";
               <Input id="username-1" name="username" placeholder="http(s)://开头或base64 编码" class="w-5/6"/>
               <Button variant="ghost"class="dark:text-white text-gray-500 italic mx-2" @click=""><RotateCcw /></Button>
             </div>
-            <div class="grid gap-3">
+            <div class="grid gap-3 hidden">
               <Label for="name-1"><Download />日志存储</Label>
               <div id="avatar-controls" class="flex items-center justify-center">
               <Input id="username-1" name="username" placeholder="日志保存目录" class="w-5/6"/>
