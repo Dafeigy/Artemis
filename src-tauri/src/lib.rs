@@ -1,4 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+#![allow(unused_imports)]
 use serialport::{available_ports, SerialPort};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -15,6 +16,7 @@ pub struct PortInfo {
 }
 
 // 串口连接状态
+#[allow(dead_code)]
 struct SerialPortState {
     is_open: bool,
     port_name: Option<String>,
@@ -87,6 +89,10 @@ fn open_serial_port(
         
         // 读取缓冲区
         let mut buffer = [0; 1024];
+        // 累积缓冲区，用于收集完整的数据
+        let mut accumulated_data = Vec::new();
+        // 上次发送数据的时间
+        let mut last_send_time = std::time::Instant::now();
         
         // 持续读取数据
         loop {
@@ -104,28 +110,73 @@ fn open_serial_port(
             // 尝试读取数据
             match port.read(&mut buffer) {
                 Ok(bytes_read) if bytes_read > 0 => {
-                    // 将读取的数据转换为字符串
-                    if let Ok(message) = String::from_utf8(buffer[..bytes_read].to_vec()) {
-                        // 发送数据到前端
-                        app_handle_clone.emit("serial_data", message).ok();
-                    } else {
-                        // 如果不是有效的UTF-8，则发送十六进制表示
-                        let hex_data: Vec<String> = buffer[..bytes_read].iter()
-                            .map(|b| format!("{:02X}", b))
-                            .collect();
-                        let hex_message = format!("HEX: {}", hex_data.join(" "));
-                        app_handle_clone.emit("serial_data", hex_message).ok();
+                    // 将读取的数据添加到累积缓冲区
+                    accumulated_data.extend_from_slice(&buffer[..bytes_read]);
+                    
+                    // 检查是否应该发送数据：
+                    // 1. 缓冲区中有足够的数据（超过10个字节）
+                    // 2. 距离上次发送已经超过50ms（即使数据量不大）
+                    let current_time = std::time::Instant::now();
+                    if accumulated_data.len() >= 10 || current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                        // 尝试将累积的数据转换为字符串
+                        if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
+                            // 发送数据到前端
+                            app_handle_clone.emit("serial_data", message).ok();
+                        } else {
+                            // 如果不是有效的UTF-8，则发送十六进制表示
+                            let hex_data: Vec<String> = accumulated_data
+                                .iter()
+                                .map(|b| format!("{:02X}", b))
+                                .collect();
+                            let hex_message = format!("HEX: {}", hex_data.join(" "));
+                            app_handle_clone.emit("serial_data", hex_message).ok();
+                        }
+                        // 清空累积缓冲区并更新上次发送时间
+                        accumulated_data.clear();
+                        last_send_time = current_time;
                     }
                 },
                 Ok(_) => {
-                    // 没有读取到数据，短暂休眠以避免CPU占用过高
+                    // 没有读取到数据，但检查累积缓冲区是否有数据需要发送
+                    let current_time = std::time::Instant::now();
+                    if !accumulated_data.is_empty() && current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                        // 发送累积的数据
+                        if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
+                            app_handle_clone.emit("serial_data", message).ok();
+                        } else {
+                            let hex_data: Vec<String> = accumulated_data
+                                .iter()
+                                .map(|b| format!("{:02X}", b))
+                                .collect();
+                            let hex_message = format!("HEX: {}", hex_data.join(" "));
+                            app_handle_clone.emit("serial_data", hex_message).ok();
+                        }
+                        accumulated_data.clear();
+                        last_send_time = current_time;
+                    }
+                    // 短暂休眠以避免CPU占用过高
                     thread::sleep(Duration::from_millis(10));
                 },
                 Err(e) => {
                     // 只处理致命错误，忽略临时错误（如超时）
                     match e.kind() {
                         std::io::ErrorKind::TimedOut => {
-                            // 超时是正常的，继续读取
+                            // 超时是正常的，检查累积缓冲区是否有数据需要发送
+                            let current_time = std::time::Instant::now();
+                            if !accumulated_data.is_empty() && current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                                if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
+                                    app_handle_clone.emit("serial_data", message).ok();
+                                } else {
+                                    let hex_data: Vec<String> = accumulated_data
+                                        .iter()
+                                        .map(|b| format!("{:02X}", b))
+                                        .collect();
+                                    let hex_message = format!("HEX: {}", hex_data.join(" "));
+                                    app_handle_clone.emit("serial_data", hex_message).ok();
+                                }
+                                accumulated_data.clear();
+                                last_send_time = current_time;
+                            }
                             thread::sleep(Duration::from_millis(10));
                         },
                         _ => {
@@ -137,6 +188,20 @@ fn open_serial_port(
                         }
                     }
                 },
+            }
+        }
+        
+        // 确保在退出前发送剩余的数据
+        if !accumulated_data.is_empty() {
+            if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
+                app_handle_clone.emit("serial_data", message).ok();
+            } else {
+                let hex_data: Vec<String> = accumulated_data
+                    .iter()
+                    .map(|b| format!("{:02X}", b))
+                    .collect();
+                let hex_message = format!("HEX: {}", hex_data.join(" "));
+                app_handle_clone.emit("serial_data", hex_message).ok();
             }
         }
         

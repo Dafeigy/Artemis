@@ -12,6 +12,7 @@
 
 @theme{
   --font-display: "depature", "fusion", "sans-serif";
+  --font-mono:"depature";
 }
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

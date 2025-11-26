@@ -95,6 +95,13 @@ const GoToSettings = () => {
     // router.push('/Settings');
 }
 
+const toggleOpenCloseCOM = async () => {
+    if (isPortOpen.value) {
+        await closeCOM();
+    } else {
+        await openCOM();
+    }
+}
 // 打开串口
 const openCOM = async () => {
     if (!selectedCOM.value) {
@@ -157,21 +164,13 @@ const sendToCOM = async () => {
 const addLogToContainer = (message: string) => {
     const container = document.getElementById('log-container');
     if (container) {
-        const now = new Date();
-        const timestamp = now.toLocaleTimeString();
         const logEntry = document.createElement('pre');
-        logEntry.textContent = `[${timestamp}] ${message}`;
+        logEntry.textContent = `${message}`;
         container.appendChild(logEntry);
         // 自动滚动到底部
         container.scrollTop = container.scrollHeight;
     }
 };
-
-setInterval(()=>{
-    console.log(selectedCOM.value);
-    console.log(selectedBaudRate.value);
-    console.log(isPortOpen.value)
-}, 1000)
 </script>
 
 <template>
@@ -213,12 +212,12 @@ setInterval(()=>{
                     </SelectContent>
                 </Select>
             </div>
-            <Button @click="openCOM" :disabled="isPortOpen || !selectedCOM" class="mx-1">
+            <Button @click="toggleOpenCloseCOM" :disabled="isPortOpen || !selectedCOM" class="mx-1">
                         Open COM
                     </Button>
-                    <Button @click="closeCOM" :disabled="!isPortOpen" variant="destructive" class="mx-1">
+                    <!-- <Button @click="closeCOM" :disabled="!isPortOpen" class="mx-1">
                         Close COM
-                    </Button>
+                    </Button> -->
         </div>
 
         <div id="topright" class="flex justify-start mx-5">
@@ -239,4 +238,8 @@ setInterval(()=>{
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+pre{
+    font-family: var(--font-mono);
+}
+</style>
