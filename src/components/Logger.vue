@@ -1,31 +1,6 @@
 <script setup>
 import { ref } from 'vue'
 
-// 生成串口信息测试数据
-const genSerialInfo = () => {
-  const logContainer = document.getElementById('log-container')
-  if (!logContainer) return
-  
-  // 测试数据数组
-  const testData = [
-    '{"command": "READ_STATUS", "status": "CONNECTED", "device": "COM3", "baudrate": 9600}',
-    '{"command": "READ_CONFIG", "config": {"mode": "MASTER", "address": 1}}',
-    '{"command": "DATA_TRANSFER", "direction": "RECEIVE", "bytes": 16}',
-    '{"command": "ERROR", "code": "E01", "message": "Timeout error"}',
-    '{"command": "CLOSE_PORT", "status": "SUCCESS", "device": "COM3"}'
-  ]
-  
-  // 添加5个pre标签
-  testData.forEach((data, index) => {
-    const pre = document.createElement('pre')
-    pre.textContent = data
-    pre.className = 'mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded'
-    logContainer.appendChild(pre)
-  })
-  
-  // 自动滚动到底部
-  logContainer.scrollTop = logContainer.scrollHeight
-}
 
 // 清空串口信息
 const clearSerialInfo = () => {

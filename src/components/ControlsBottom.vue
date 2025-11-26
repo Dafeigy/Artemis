@@ -19,13 +19,8 @@ const genSerialInfo = () => {
   if (!logContainer) return;
 
   // 测试数据数组
-  const testData = [
-    '   {"command": "READ_STATUS", "status": "CONNECTED", "device": "COM3", "baudrate": 9600}',
-    '   {"command": "READ_CONFIG", "config": {"mode": "MASTER", "address": 1}}',
-    '{"command": "DATA_TRANSFER", "direction": "RECEIVE", "bytes": 16}',
-    '{"command": "ERROR", "code": "E01", "message": "Timeout error"}',
-    '{"command": "CLOSE_PORT", "status": "SUCCESS", "device": "COM3"}',
-  ];
+  const testData = ['// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/\n', 'use serialport::available_ports;\n', 'use serde::{Deserialize, Serialize};\n', '\n', '// COM端口信息结构体\n', '#[derive(Debug, Serialize, Deserialize)]\n', 'pub struct PortInfo {\n', '    pub name: String,\n', '    pub port_type: String,\n', '}\n', '\n', '#[tauri::command]\n', 'fn greet(name: &str) -> String {\n', '    format!("Hello, {}! You\'ve been greeted from Rust!", name)\n', '}\n', '\n', '/// 获取可用的COM端口列表\n', '#[tauri::command]\n', 'fn get_available_ports() -> Result<Vec<PortInfo>, String> {\n', '    match available_ports() {\n', '        Ok(ports) => {\n', '            let port_infos: Vec<PortInfo> = ports\n', '                .iter()\n', '                .map(|port| PortInfo {\n', '                    name: port.port_name.clone(),\n', '                    port_type: match &port.port_type {\n', '                        serialport::SerialPortType::UsbPort(info) => {\n', '                            if let Some(product) = &info.product {\n', '                                product.clone()\n', '                            } else {\n', '                                format!("{:?}", port.port_type)\n', '                            }\n', '                        },\n', '                        _ => format!("{:?}", port.port_type),\n', '                    },\n', '                })\n', '                .collect();\n', '            Ok(port_infos)\n', '        }\n', '        Err(e) => Err(format!("Failed to list serial ports: {}", e)),\n', '    }\n', '}\n', '\n', '#[cfg_attr(mobile, tauri::mobile_entry_point)]\n', 'pub fn run() {\n', '    tauri::Builder::default()\n', '        .plugin(tauri_plugin_opener::init())\n', '        .plugin(tauri_plugin_dialog::init())\n', '        .plugin(tauri_plugin_fs::init())\n', '        .invoke_handler(tauri::generate_handler![greet, get_available_ports])\n', '        .run(tauri::generate_context!())\n', '        .expect("error while running tauri application");\n', '}']
+  
 
   // 添加5个pre标签
   testData.forEach((data, index) => {
