@@ -19,6 +19,7 @@ struct SerialPortState {
     is_open: bool,
     port_name: Option<String>,
     baud_rate: Option<u32>,
+    port: Option<Box<dyn SerialPort>>,
 }
 
 // 实现默认值
@@ -28,6 +29,7 @@ impl Default for SerialPortState {
             is_open: false,
             port_name: None,
             baud_rate: None,
+            port: None,
         }
     }
 }
@@ -120,11 +122,20 @@ fn open_serial_port(
                     thread::sleep(Duration::from_millis(10));
                 },
                 Err(e) => {
-                    // 发送错误信息
-                    let error_msg = format!("Error reading from port {}: {}", port_name_clone, e);
-                    app_handle_clone.emit("serial_error", error_msg).ok();
-                    // 发生错误时关闭端口
-                    break;
+                    // 只处理致命错误，忽略临时错误（如超时）
+                    match e.kind() {
+                        std::io::ErrorKind::TimedOut => {
+                            // 超时是正常的，继续读取
+                            thread::sleep(Duration::from_millis(10));
+                        },
+                        _ => {
+                            // 发送错误信息
+                            let error_msg = format!("Error reading from port {}: {}", port_name_clone, e);
+                            app_handle_clone.emit("serial_error", error_msg).ok();
+                            // 发生致命错误时关闭端口
+                            break;
+                        }
+                    }
                 },
             }
         }

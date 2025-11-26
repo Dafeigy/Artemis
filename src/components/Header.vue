@@ -128,9 +128,15 @@ const closeCOM = async () => {
 };
 
 // 发送数据到串口
-const sendToCOM = async (data: string) => {
-    if (!data || !isPortOpen.value) {
+const sendToCOM = async () => {
+    if (!sendInput.value || !isPortOpen.value) {
         console.error('Cannot send data: Either no data provided or port is not open');
+        return;
+    }
+    
+    const data = sendInput.value.value;
+    if (!data) {
+        console.error('Cannot send empty data');
         return;
     }
     
@@ -140,9 +146,7 @@ const sendToCOM = async (data: string) => {
         });
         console.log('Data sent:', result);
         // 清空输入框
-        if (sendInput && sendInput.value) {
-            sendInput.value = '';
-        }
+        sendInput.value.value = '';
     } catch (error) {
         console.error('Failed to send data:', error);
         addLogToContainer(`Error: ${error}`);
@@ -223,7 +227,7 @@ setInterval(()=>{
                     <InputGroupAddon align="inline-end">
                         <InputGroupButton 
                             variant="secondary" 
-                            @click="sendInput && sendToCOM(sendInput.value)"
+                            @click="sendToCOM()"
                             :disabled="!isPortOpen"
                         >
                             Send

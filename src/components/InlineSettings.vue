@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
-import { Settings, RotateCcw, Palette, CircleUserRound, Info, Link, FolderInput, Download } from "lucide-vue-next";
+import { Settings, RotateCcw, Palette, CircleUserRound, FolderInput, Download } from "lucide-vue-next";
 import {
   Dialog,
   DialogClose,
