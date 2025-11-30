@@ -117,7 +117,7 @@ fn open_serial_port(
                     // 1. 缓冲区中有足够的数据（超过10个字节）
                     // 2. 距离上次发送已经超过50ms（即使数据量不大）
                     let current_time = std::time::Instant::now();
-                    if accumulated_data.len() >= 10 || current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                    if accumulated_data.len() >= 32 || current_time.duration_since(last_send_time) > Duration::from_millis(1000) {
                         // 尝试将累积的数据转换为字符串
                         if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                             // 发送数据到前端
