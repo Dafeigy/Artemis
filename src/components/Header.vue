@@ -26,7 +26,7 @@ const avaliableCOMSs = ref<PortInfo[]>([]);
 const BaudRates = ref([9600, 115200]);
 // const portTimer = ref<number | null>(null);
 const selectedCOM = ref<string>('');
-const selectedBaudRate = ref<number>(9600);
+const selectedBaudRate = ref<number>(115200);
 const isPortOpen = ref<boolean>(false);
 const sendInput = ref<HTMLInputElement | null>(null);
 let unlistenSerialData: (() => void) | null = null;
@@ -215,9 +215,7 @@ const addLogToContainer = (message: string) => {
             <Button @click="toggleOpenCloseCOM" :disabled="isPortOpen || !selectedCOM" class="mx-1">
                         Open COM
                     </Button>
-                    <!-- <Button @click="closeCOM" :disabled="!isPortOpen" class="mx-1">
-                        Close COM
-                    </Button> -->
+
         </div>
 
         <div id="topright" class="flex justify-start mx-5">

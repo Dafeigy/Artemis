@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
-import { Settings, RotateCcw, Palette, CircleUserRound, FolderInput, Download } from "lucide-vue-next";
+import { Settings, RotateCcw, Palette, CircleUserRound } from "lucide-vue-next";
 import {
   Dialog,
   DialogClose,
@@ -20,7 +20,7 @@ import SelectMode from "./SelectMode.vue";
   <Dialog >
     <form >
       <DialogTrigger as-child>
-        <img src="https://pic1.imgdb.cn/item/692661363203f7be00338e80.gif" alt="" class="rounded-full h-full aspect-square"></img>
+        <img src="../assets/warma.jpg" alt="" class="rounded-full h-full aspect-square"></img>
       </DialogTrigger>
       <DialogContent class="sm:max-w-[425px] font-display">
         <DialogHeader>
@@ -41,13 +41,7 @@ import SelectMode from "./SelectMode.vue";
               <Input id="username-1" name="username" placeholder="http(s)://开头或base64 编码" class="w-5/6"/>
               <Button variant="ghost"class="dark:text-white text-gray-500 italic mx-2" @click=""><RotateCcw /></Button>
             </div>
-            <div class="grid gap-3 hidden">
-              <Label for="name-1"><Download />日志存储</Label>
-              <div id="avatar-controls" class="flex items-center justify-center">
-              <Input id="username-1" name="username" placeholder="日志保存目录" class="w-5/6"/>
-              <Button variant="ghost"class="dark:text-white text-gray-500 italic mx-2" @click=""><FolderInput /></Button>
-            </div>
-          </div>
+            
            
           </div>
         </div>

@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
 import Button from "./ui/button/Button.vue";
 import Label from "./ui/label/Label.vue";
 import {
@@ -11,27 +12,56 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Save, Info } from "lucide-vue-next";
+import { Save, Info, Settings, Palette } from "lucide-vue-next";
 import { exportLogs, notificationService } from "../lib/utils";
-// 生成串口信息测试数据
-const genSerialInfo = () => {
+
+// 行数状态
+const totalLines = ref(0);
+const selectedStart = ref(0);
+const selectedEnd = ref(0);
+const isSelected = ref(false);
+
+// 更新总行数
+const updateTotalLines = () => {
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    totalLines.value = logContainer.querySelectorAll('pre').length;
+  }
+};
+
+// 处理选择事件
+const handleSelection = () => {
   const logContainer = document.getElementById("log-container");
   if (!logContainer) return;
 
-  // 测试数据数组
-  const testData = ['// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/\n', 'use serialport::available_ports;\n', 'use serde::{Deserialize, Serialize};\n', '\n', '// COM端口信息结构体\n', '#[derive(Debug, Serialize, Deserialize)]\n', 'pub struct PortInfo {\n', '    pub name: String,\n', '    pub port_type: String,\n', '}\n', '\n', '#[tauri::command]\n', 'fn greet(name: &str) -> String {\n', '    format!("Hello, {}! You\'ve been greeted from Rust!", name)\n', '}\n', '\n', '/// 获取可用的COM端口列表\n', '#[tauri::command]\n', 'fn get_available_ports() -> Result<Vec<PortInfo>, String> {\n', '    match available_ports() {\n', '        Ok(ports) => {\n', '            let port_infos: Vec<PortInfo> = ports\n', '                .iter()\n', '                .map(|port| PortInfo {\n', '                    name: port.port_name.clone(),\n', '                    port_type: match &port.port_type {\n', '                        serialport::SerialPortType::UsbPort(info) => {\n', '                            if let Some(product) = &info.product {\n', '                                product.clone()\n', '                            } else {\n', '                                format!("{:?}", port.port_type)\n', '                            }\n', '                        },\n', '                        _ => format!("{:?}", port.port_type),\n', '                    },\n', '                })\n', '                .collect();\n', '            Ok(port_infos)\n', '        }\n', '        Err(e) => Err(format!("Failed to list serial ports: {}", e)),\n', '    }\n', '}\n', '\n', '#[cfg_attr(mobile, tauri::mobile_entry_point)]\n', 'pub fn run() {\n', '    tauri::Builder::default()\n', '        .plugin(tauri_plugin_opener::init())\n', '        .plugin(tauri_plugin_dialog::init())\n', '        .plugin(tauri_plugin_fs::init())\n', '        .invoke_handler(tauri::generate_handler![greet, get_available_ports])\n', '        .run(tauri::generate_context!())\n', '        .expect("error while running tauri application");\n', '}']
-  
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed) {
+    isSelected.value = false;
+    return;
+  }
 
-  // 添加5个pre标签
-  testData.forEach((data, index) => {
-    const pre = document.createElement("pre");
-    pre.textContent = data;
-    pre.className = "";
-    logContainer.appendChild(pre);
-  });
+  const range = selection.getRangeAt(0);
+  const startNode = range.startContainer;
+  const endNode = range.endContainer;
 
-  // 自动滚动到底部
-  logContainer.scrollTop = logContainer.scrollHeight;
+  // 获取包含起始节点的pre标签
+  let startPre = startNode;
+  while (startPre && startPre.tagName !== 'PRE') {
+    startPre = startPre.parentNode;
+  }
+
+  // 获取包含结束节点的pre标签
+  let endPre = endNode;
+  while (endPre && endPre.tagName !== 'PRE') {
+    endPre = endPre.parentNode;
+  }
+
+  if (startPre && endPre) {
+    const allPres = Array.from(logContainer.querySelectorAll('pre'));
+    selectedStart.value = allPres.indexOf(startPre) + 1;
+    selectedEnd.value = allPres.indexOf(endPre) + 1;
+    isSelected.value = true;
+  }
 };
 
 // 清空串口信息
@@ -40,6 +70,7 @@ const clearSerialInfo = () => {
   if (logContainer) {
     logContainer.innerHTML = "";
   }
+  updateTotalLines();
 };
 
 // 导出日志
@@ -51,6 +82,33 @@ const handleExportLogs = async () => {
     notificationService.error("导出失败", "日志导出失败或用户取消了操作");
   }
 };
+
+// 监听日志添加事件
+const mutationObserver = new MutationObserver(() => {
+  updateTotalLines();
+});
+
+onMounted(() => {
+  // 初始更新总行数
+  updateTotalLines();
+  
+  // 监听日志容器的变化
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    mutationObserver.observe(logContainer, {
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  // 监听选择事件
+  document.addEventListener('selectionchange', handleSelection);
+});
+
+onUnmounted(() => {
+  mutationObserver.disconnect();
+  document.removeEventListener('selectionchange', handleSelection);
+});
 </script>
 <template>
   <div class="justify-between flex w-full h-1/20 items-center max-h-[32px]">
@@ -101,15 +159,9 @@ const handleExportLogs = async () => {
     </div>
     <div class="">
       <span class="text-xs mx-2 dark:text-white text-gray-500 select-none"
-        >0-3630</span
+        >0-{{ totalLines }}<template v-if="isSelected">({{ selectedStart }}:{{ selectedEnd }})</template></span
       >
-      <Button
-        variant="ghost"
-        size="xs"
-        class="text-xs dark:text-white text-gray-500 px-4 py-2 italic"
-        @click="genSerialInfo"
-        >Generate</Button
-      >
+
       <Button
         variant="ghost"
         size="xs"

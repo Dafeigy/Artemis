@@ -114,10 +114,13 @@ fn open_serial_port(
                     accumulated_data.extend_from_slice(&buffer[..bytes_read]);
                     
                     // 检查是否应该发送数据：
-                    // 1. 缓冲区中有足够的数据（超过10个字节）
-                    // 2. 距离上次发送已经超过50ms（即使数据量不大）
-                    let current_time = std::time::Instant::now();
-                    if accumulated_data.len() >= 32 || current_time.duration_since(last_send_time) > Duration::from_millis(1000) {
+            // 1. 缓冲区中有足够的数据（超过32个字节）
+            // 2. 距离上次发送已经超过100ms且累积数据超过2个字符（避免发送单个字符）
+            let current_time = std::time::Instant::now();
+            let time_since_last_send = current_time.duration_since(last_send_time);
+            let should_send = accumulated_data.len() >= 32 || 
+                              (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
+            if should_send {
                         // 尝试将累积的数据转换为字符串
                         if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                             // 发送数据到前端
@@ -139,7 +142,10 @@ fn open_serial_port(
                 Ok(_) => {
                     // 没有读取到数据，但检查累积缓冲区是否有数据需要发送
                     let current_time = std::time::Instant::now();
-                    if !accumulated_data.is_empty() && current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                    let time_since_last_send = current_time.duration_since(last_send_time);
+                    let should_send = accumulated_data.len() >= 32 || 
+                                      (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
+                    if should_send {
                         // 发送累积的数据
                         if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                             app_handle_clone.emit("serial_data", message).ok();
@@ -163,7 +169,10 @@ fn open_serial_port(
                         std::io::ErrorKind::TimedOut => {
                             // 超时是正常的，检查累积缓冲区是否有数据需要发送
                             let current_time = std::time::Instant::now();
-                            if !accumulated_data.is_empty() && current_time.duration_since(last_send_time) > Duration::from_millis(50) {
+                            let time_since_last_send = current_time.duration_since(last_send_time);
+                            let should_send = accumulated_data.len() >= 32 || 
+                                              (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
+                            if should_send {
                                 if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                                     app_handle_clone.emit("serial_data", message).ok();
                                 } else {
