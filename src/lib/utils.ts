@@ -3,7 +3,7 @@ import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { save } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
-import { ref, reactive } from 'vue'
+import { reactive } from 'vue'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
