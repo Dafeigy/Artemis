@@ -4,8 +4,7 @@ import Header from "../components/Header.vue";
 import Logger from "../components/Logger.vue";
 import ControlsBottom from "../components/ControlsBottom.vue";
 
-// 使用useColorMode获取颜色模式值
-const mode = useColorMode();
+
 </script>
 
 <template>

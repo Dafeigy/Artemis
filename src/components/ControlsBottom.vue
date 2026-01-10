@@ -119,7 +119,7 @@ onUnmounted(() => {
             <Button
               variant="ghost"
               size="xs"
-              class="px-2 py-1 text-gray-500 italic"
+              class="px-2 py-1  italic"
               ><Info
             /></Button>
           </DialogTrigger>
@@ -150,7 +150,7 @@ onUnmounted(() => {
       <Button
         variant="ghost"
         size="xs"
-        class="px-2 py-1 text-gray-500 italic"
+        class="px-2 py-1 italic"
         @click="handleExportLogs"
         title="导出日志"
       >

@@ -56,7 +56,7 @@ const getAlertVariant = (type: Notification['type']) => {
         <AlertDescription>{{ notification.description }}</AlertDescription>
         <button
           type="button"
-          class="absolute top-2 right-2 rounded-full p-1 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          class="absolute top-2 right-2 rounded-full p-1 hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
           @click="handleClose(notification.id)"
         >
           <X class="h-4 w-4" />
