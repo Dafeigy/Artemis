@@ -12,18 +12,18 @@
   "app": {
     "windows": [
       {
-        "center": true,
-        "visible": true,
-        "decorations": true,
-        "title": "Artemis",
-        "width": 1280,
-        "height": 720,
-        "transparent": true,
-        "windowEffects": {
-            "effects": ["hudWindow","acrylic","mica"],
-            "radius": 12
+          "center": true,
+          "visible": true,
+          "decorations": false,
+          "title": "Artemis",
+          "width": 1280,
+          "height": 720,
+          "transparent": true,
+          "windowEffects": {
+              "effects": ["hudWindow","acrylic","mica"],
+              "radius": 12
+          }
         }
-      }
     ],
     "security": {
       "csp": null

@@ -174,7 +174,7 @@ const addLogToContainer = (message: string) => {
 </script>
 
 <template>
-    <div class="flex w-full items-center justify-between max-h-[96px]">
+    <div class="flex w-full items-center justify-between max-h-[96px] my-[10px]">
         <div id="topleft" class="flex items-center h-full opacity-100">
             <div class="mx-2 h-3/5 aspect-square justify-center items-center cursor-pointer rounded-full"
                 @click="GoToSettings">

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useColorMode } from '@vueuse/core';
 import Header from "../components/Header.vue";
 import Logger from "../components/Logger.vue";
 import ControlsBottom from "../components/ControlsBottom.vue";
