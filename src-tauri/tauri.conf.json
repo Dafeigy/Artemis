@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "artemis",
+  "productName": "Artemis",
   "version": "1.0.0",
   "identifier": "com.user.artemis",
   "build": {
