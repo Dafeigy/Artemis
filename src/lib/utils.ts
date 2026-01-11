@@ -3,11 +3,40 @@ import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { save } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+// 行数状态
+export const totalLines = ref(0);
+export const selectedStart = ref(0);
+export const selectedEnd = ref(0);
+export const isSelected = ref(false);
+
+export const handleExportLogs = async () => {
+  const success = await exportLogs();
+  if (success) {
+    notificationService.success("导出成功", "日志已成功导出到指定文件");
+  } else {
+    notificationService.error("导出失败", "日志导出失败或用户取消了操作");
+  }
+};
+
+export const clearSerialInfo = () => {
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    logContainer.innerHTML = "";
+  }
+  updateTotalLines();
+};
+const updateTotalLines = () => {
+  const logContainer = document.getElementById("log-container");
+  if (logContainer) {
+    totalLines.value = logContainer.querySelectorAll('pre').length;
+  }
+};
 
 // 通知类型定义
 export type NotificationType = 'success' | 'error' | 'info' | 'warning'

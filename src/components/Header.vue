@@ -21,7 +21,7 @@ interface PortInfo {
     name: string;
     port_type: string;
 }
-
+const portTimer = ref<number | null>(null);
 const avaliableCOMSs = ref<PortInfo[]>([]);
 const BaudRates = ref([9600, 115200]);
 // const portTimer = ref<number | null>(null);
@@ -32,7 +32,20 @@ const sendInput = ref<HTMLInputElement | null>(null);
 let unlistenSerialData: (() => void) | null = null;
 let unlistenSerialMessage: (() => void) | null = null;
 let unlistenSerialError: (() => void) | null = null;
-
+const fetchSerialPortStatus = async () => {
+    try {
+        const status = await invoke<any>('get_serial_port_status');
+        isPortOpen.value = status.is_open;
+        if (status.port_name && !selectedCOM.value) {
+            selectedCOM.value = status.port_name;
+        }
+        if (status.baud_rate && !selectedBaudRate.value) {
+            selectedBaudRate.value = status.baud_rate;
+        }
+    } catch (error) {
+        console.error('Failed to fetch serial port status:', error);
+    }
+};
 // 获取可用COM端口列表
 const fetchAvailablePorts = async () => {
     try {
@@ -48,7 +61,11 @@ const fetchAvailablePorts = async () => {
 // 组件挂载时获取COM端口列表并设置事件监听
 onMounted(async () => {
     fetchAvailablePorts(); // 立即执行一次
-    
+    fetchSerialPortStatus(); // 立即获取一次串口状态
+    portTimer.value = window.setInterval(() => {
+        fetchSerialPortStatus();
+        fetchAvailablePorts();
+    }, 1000);
     // 监听串口数据事件
     unlistenSerialData = await listen<string>('serial_data', (event) => {
         const data = event.payload;
@@ -77,7 +94,9 @@ onUnmounted(() => {
     if (unlistenSerialData) unlistenSerialData();
     if (unlistenSerialMessage) unlistenSerialMessage();
     if (unlistenSerialError) unlistenSerialError();
-    
+    if (portTimer.value !== null) {
+        clearInterval(portTimer.value);
+    }
     // 如果端口是打开状态，尝试关闭它
     if (isPortOpen.value) {
         closeCOM().catch(err => console.error('Failed to close port on unmount:', err));
@@ -212,8 +231,8 @@ const addLogToContainer = (message: string) => {
                     </SelectContent>
                 </Select>
             </div>
-            <Button @click="toggleOpenCloseCOM" :disabled="isPortOpen || !selectedCOM" class="mx-1">
-                        Open COM
+            <Button @click="toggleOpenCloseCOM" :disabled="!selectedCOM" class="mx-1">
+                        {{ isPortOpen ? 'Close COM' : 'Open COM' }}
                     </Button>
 
         </div>

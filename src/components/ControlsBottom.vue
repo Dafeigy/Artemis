@@ -14,12 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Save, Info, Settings, Palette } from "lucide-vue-next";
 import { exportLogs, notificationService } from "../lib/utils";
+import { totalLines, selectedStart, selectedEnd, isSelected } from "@/lib/utils";
 
-// 行数状态
-const totalLines = ref(0);
-const selectedStart = ref(0);
-const selectedEnd = ref(0);
-const isSelected = ref(false);
+
 
 // 更新总行数
 const updateTotalLines = () => {

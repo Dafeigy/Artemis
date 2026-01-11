@@ -15,13 +15,21 @@ pub struct PortInfo {
     pub port_type: String,
 }
 
-// 串口连接状态
+// 串口连接状态（内部使用）
 #[allow(dead_code)]
 struct SerialPortState {
     is_open: bool,
     port_name: Option<String>,
     baud_rate: Option<u32>,
     port: Option<Box<dyn SerialPort>>,
+}
+
+// 串口状态API响应（用于前端）
+#[derive(Debug, Serialize, Deserialize)]
+struct SerialPortStatusResponse {
+    pub is_open: bool,
+    pub port_name: Option<String>,
+    pub baud_rate: Option<u32>,
 }
 
 // 实现默认值
@@ -269,6 +277,19 @@ fn get_available_ports() -> Result<Vec<PortInfo>, String> {
     }
 }
 
+/// 获取当前串口连接状态
+#[tauri::command]
+fn get_serial_port_status(
+    state: State<Arc<Mutex<SerialPortState>>>,
+) -> Result<SerialPortStatusResponse, String> {
+    let state_guard = state.lock().map_err(|e| format!("Failed to lock state: {}", e))?;
+    Ok(SerialPortStatusResponse {
+        is_open: state_guard.is_open,
+        port_name: state_guard.port_name.clone(),
+        baud_rate: state_guard.baud_rate,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -276,7 +297,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(Arc::new(Mutex::new(SerialPortState::default())))
-        .invoke_handler(tauri::generate_handler![greet, get_available_ports, open_serial_port, close_serial_port])
+        .invoke_handler(tauri::generate_handler![greet, get_available_ports, open_serial_port, close_serial_port, get_serial_port_status])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
