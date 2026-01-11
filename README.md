@@ -65,7 +65,7 @@
 1. 确保安装了 Rust 和 Node.js
 2. 克隆仓库：
    ```bash
-   git clone https://github.com/dafeigy/artemis.git
+   git clone https://github.com/Dafeigy/artemis.git
    cd artemis
    ```
 3. 安装依赖：
@@ -108,7 +108,7 @@ MIT License
 
 如有问题或建议，欢迎通过以下方式联系：
 
-- GitHub Issues：https://github.com/yourusername/artemis/issues
+- GitHub Issues：https://github.com/Dafeigy/artemis/issues
 
 ---
 
