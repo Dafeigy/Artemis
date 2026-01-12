@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { addLogToContainer } from '@/lib/utils.js'
 
 import {
     Select,
@@ -179,17 +180,7 @@ const sendToCOM = async () => {
     }
 };
 
-// 添加日志到容器
-const addLogToContainer = (message: string) => {
-    const container = document.getElementById('log-container');
-    if (container) {
-        const logEntry = document.createElement('pre');
-        logEntry.textContent = `${message}`;
-        container.appendChild(logEntry);
-        // 自动滚动到底部
-        container.scrollTop = container.scrollHeight;
-    }
-};
+
 </script>
 
 <template>
@@ -199,11 +190,11 @@ const addLogToContainer = (message: string) => {
                 @click="GoToSettings">
                 <InlineSettings />
             </div>
-            <div id="select-com" class="mx-2">
+            <div id="select-com" class="mx-2 ">
                 <Select v-model="selectedCOM">
-                    <SelectTrigger class="w-[180px]">
-                                <SelectValue placeholder="Select COM" />
-                            </SelectTrigger>
+                    <SelectTrigger class="w-[200px] ">
+                        <SelectValue placeholder="Select COM" />
+                    </SelectTrigger>
                     <SelectContent>
                         <SelectGroup>
                             <SelectLabel class="items-center flex">Available COM<Button variant="ghost" class="mx-1" size="sm" @click="fetchAvailablePorts">

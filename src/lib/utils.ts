@@ -24,6 +24,31 @@ export const handleExportLogs = async () => {
   }
 };
 
+export const addLogToContainer = (message: string) => {
+    const container = document.getElementById('log-container');
+    if (container) {
+        const logEntry = document.createElement('pre');
+        logEntry.textContent = `${message}`;
+        
+        // 根据消息内容添加不同的CSS类
+        if (/\[w\]|\[warning\]/i.test(message)) {
+            logEntry.classList.add('dark:text-orange-300');
+            logEntry.classList.add('text-yellow-600/90');
+        } else if (/\[E\]|\[Error\]/i.test(message)) {
+            logEntry.classList.add('dark:text-red-300');
+            logEntry.classList.add('text-chart-1');
+        }
+        else if (/\[I\]|\[Info\]/i.test(message)) {
+            logEntry.classList.add('dark:text-green-300'); 
+            logEntry.classList.add('text-green-500');
+        }
+        
+        container.appendChild(logEntry);
+        // 自动滚动到底部
+        container.scrollTop = container.scrollHeight;
+    }
+};
+
 export const clearSerialInfo = () => {
   const logContainer = document.getElementById("log-container");
   if (logContainer) {

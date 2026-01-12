@@ -17,6 +17,15 @@ const clearSerialInfo = () => {
 </template>
 
 <style scoped>
+
+.warning{
+  color: #ffc107;
+  background: #000;
+}
+.error{
+  color: #dc3545;
+  background: #000;
+}
 pre {  
   scrollbar-color: transparent transparent;
   transition: scrollbar-color 0.2s ease;
