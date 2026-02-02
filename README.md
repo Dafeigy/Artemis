@@ -1,4 +1,4 @@
-# Artemis - CrossPlatform, Modern UI Serial Monitor
+Artemis - CrossPlatform, Modern UI Serial Monitor
 <p align="center">
    <img src="src/assets/Artemis.png" style="width:300px">
 </p>
@@ -99,7 +99,7 @@
 
 - [ ] 串口信息标签化/过滤
 - [ ] 支持多串口同时监控
-- [ ] ArchLinux Support
+- [x] ArchLinux Support
 
 ## 🤝 贡献
 
