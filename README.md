@@ -105,6 +105,13 @@ Artemis - CrossPlatform, Modern UI Serial Monitor
 
 欢迎提交 Issue 和 Pull Request！
 
+## Linux 支持
+
+```bash
+
+# Archlinux
+sudo pacman -S webkit2gtk-2.1
+```
 ## 📄 许可证
 
 MIT License
