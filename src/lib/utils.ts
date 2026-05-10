@@ -33,14 +33,14 @@ export const addLogToContainer = (message: string) => {
         // 根据消息内容添加不同的CSS类
         if (/\[w\]|\[warning\]/i.test(message)) {
             logEntry.classList.add('dark:text-orange-300');
-            logEntry.classList.add('text-yellow-600/90');
+            logEntry.classList.add('text-[#BE6400]');
         } else if (/\[E\]|\[Error\]/i.test(message)) {
             logEntry.classList.add('dark:text-red-300');
-            logEntry.classList.add('text-chart-1');
+            logEntry.classList.add('text-[#B33A2C]');
         }
         else if (/\[I\]|\[Info\]/i.test(message)) {
             logEntry.classList.add('dark:text-green-300'); 
-            logEntry.classList.add('text-green-500');
+            logEntry.classList.add('text-[#1F6392]');
         }
         
         container.appendChild(logEntry);
