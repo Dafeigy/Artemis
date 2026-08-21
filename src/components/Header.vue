@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { addLogToContainer } from '@/lib/utils.js'
+import { isSerialPortOpen } from '@/lib/serial'
 
 import {
     Select,
@@ -28,7 +29,7 @@ const BaudRates = ref([9600, 115200]);
 // const portTimer = ref<number | null>(null);
 const selectedCOM = ref<string>('');
 const selectedBaudRate = ref<number>(115200);
-const isPortOpen = ref<boolean>(false);
+const isPortOpen = isSerialPortOpen;
 const sendInput = ref<HTMLInputElement | null>(null);
 let unlistenSerialData: (() => void) | null = null;
 let unlistenSerialMessage: (() => void) | null = null;
@@ -168,8 +169,8 @@ const sendToCOM = async () => {
     }
     
     try {
-        const result = await invoke<string>('send_to_serial_port', {
-            data
+        const result = await invoke<number>('send_to_serial_port', {
+            data: Array.from(new TextEncoder().encode(data))
         });
         console.log('Data sent:', result);
         // 清空输入框

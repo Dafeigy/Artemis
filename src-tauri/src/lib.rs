@@ -1,12 +1,13 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #![allow(unused_imports)]
-use serialport::{available_ports, SerialPort};
 use serde::{Deserialize, Serialize};
+use serialport::{available_ports, SerialPort};
+use std::io::{Read, Write};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, Emitter, State};
-use std::sync::Mutex;
+use tauri::{AppHandle, Emitter, Manager, State};
 
 // COM端口信息结构体
 #[derive(Debug, Serialize, Deserialize)]
@@ -22,6 +23,7 @@ struct SerialPortState {
     port_name: Option<String>,
     baud_rate: Option<u32>,
     port: Option<Box<dyn SerialPort>>,
+    generation: u64,
 }
 
 // 串口状态API响应（用于前端）
@@ -40,6 +42,7 @@ impl Default for SerialPortState {
             port_name: None,
             baud_rate: None,
             port: None,
+            generation: 0,
         }
     }
 }
@@ -57,78 +60,87 @@ fn open_serial_port(
     baud_rate: u32,
     state: State<Arc<Mutex<SerialPortState>>>,
 ) -> Result<String, String> {
-    // 尝试关闭已经打开的端口
-    let mut state_guard = state.lock().map_err(|e| format!("Failed to lock state: {}", e))?;
+    // 同一时刻只允许打开一个端口。
+    let mut state_guard = state
+        .lock()
+        .map_err(|e| format!("Failed to lock state: {}", e))?;
     if state_guard.is_open {
-        return Err(format!("Port {} is already open", state_guard.port_name.as_ref().unwrap_or(&"unknown".to_string())));
+        return Err(format!(
+            "Port {} is already open",
+            state_guard
+                .port_name
+                .as_ref()
+                .unwrap_or(&"unknown".to_string())
+        ));
     }
-    
-    // 更新状态
+
+    // 分离读写句柄：读取线程独占 reader，writer 保存在共享状态中供 command 使用。
+    let writer = serialport::new(port_name, baud_rate)
+        .timeout(Duration::from_millis(20))
+        .open()
+        .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+    let mut reader = writer
+        .try_clone()
+        .map_err(|e| format!("Failed to clone port {}: {}", port_name, e))?;
+
+    state_guard.generation = state_guard.generation.wrapping_add(1);
+    let connection_generation = state_guard.generation;
     state_guard.is_open = true;
     state_guard.port_name = Some(port_name.to_string());
     state_guard.baud_rate = Some(baud_rate);
-    
+    state_guard.port = Some(writer);
+    drop(state_guard);
+
     // 克隆必要的变量以便在新线程中使用
     let app_handle_clone = app_handle.clone();
     let port_name_clone = port_name.to_string();
     let state_clone = Arc::clone(&state);
-    
+
     // 创建一个新线程来读取串口数据
     thread::spawn(move || {
-        // 打开串口
-        let mut port = match serialport::new(&port_name_clone, baud_rate)
-            .timeout(Duration::from_millis(100)) // 设置100ms的读取超时
-            .open() {
-            Ok(port) => port,
-            Err(e) => {
-                // 更新状态并发送错误事件
-                if let Ok(mut state_guard) = state_clone.lock() {
-                    state_guard.is_open = false;
-                }
-                let error_msg = format!("Failed to open port {}: {}", port_name_clone, e);
-                app_handle_clone.emit("serial_error", error_msg).ok();
-                return;
-            }
-        };
-        
         // 发送端口已打开的事件
         let open_msg = format!("Port {} opened at {} bps", port_name_clone, baud_rate);
         app_handle_clone.emit("serial_message", open_msg).ok();
-        
+
         // 读取缓冲区
         let mut buffer = [0; 1024];
         // 累积缓冲区，用于收集完整的数据
         let mut accumulated_data = Vec::new();
         // 上次发送数据的时间
         let mut last_send_time = std::time::Instant::now();
-        
+
         // 持续读取数据
         loop {
             // 检查端口是否仍应打开
-            {   
+            {
                 let state_guard = match state_clone.lock() {
                     Ok(guard) => guard,
                     Err(_) => break,
                 };
-                if !state_guard.is_open {
+                if !state_guard.is_open || state_guard.generation != connection_generation {
                     break;
                 }
             }
-            
+
             // 尝试读取数据
-            match port.read(&mut buffer) {
+            match reader.read(&mut buffer) {
                 Ok(bytes_read) if bytes_read > 0 => {
+                    // 终端模式必须收到未经 UTF-8 转换和日志分段处理的原始字节。
+                    app_handle_clone
+                        .emit("serial_data_bytes", buffer[..bytes_read].to_vec())
+                        .ok();
                     // 将读取的数据添加到累积缓冲区
                     accumulated_data.extend_from_slice(&buffer[..bytes_read]);
-                    
+
                     // 检查是否应该发送数据：
-            // 1. 缓冲区中有足够的数据（超过32个字节）
-            // 2. 距离上次发送已经超过100ms且累积数据超过2个字符（避免发送单个字符）
-            let current_time = std::time::Instant::now();
-            let time_since_last_send = current_time.duration_since(last_send_time);
-            let should_send = accumulated_data.len() >= 32 || 
-                              (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
-            if should_send {
+                    // 1. 缓冲区中有足够的数据（超过32个字节）
+                    // 2. 距离上次发送已经超过100ms且累积数据超过2个字符（避免发送单个字符）
+                    let current_time = std::time::Instant::now();
+                    let time_since_last_send = current_time.duration_since(last_send_time);
+                    let should_send = accumulated_data.len() >= 32
+                        || (accumulated_data.len() > 2
+                            && time_since_last_send > Duration::from_millis(100));
+                    if should_send {
                         // 尝试将累积的数据转换为字符串
                         if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                             // 发送数据到前端
@@ -146,13 +158,14 @@ fn open_serial_port(
                         accumulated_data.clear();
                         last_send_time = current_time;
                     }
-                },
+                }
                 Ok(_) => {
                     // 没有读取到数据，但检查累积缓冲区是否有数据需要发送
                     let current_time = std::time::Instant::now();
                     let time_since_last_send = current_time.duration_since(last_send_time);
-                    let should_send = accumulated_data.len() >= 32 || 
-                                      (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
+                    let should_send = accumulated_data.len() >= 32
+                        || (accumulated_data.len() > 2
+                            && time_since_last_send > Duration::from_millis(100));
                     if should_send {
                         // 发送累积的数据
                         if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
@@ -170,7 +183,7 @@ fn open_serial_port(
                     }
                     // 短暂休眠以避免CPU占用过高
                     thread::sleep(Duration::from_millis(10));
-                },
+                }
                 Err(e) => {
                     // 只处理致命错误，忽略临时错误（如超时）
                     match e.kind() {
@@ -178,8 +191,9 @@ fn open_serial_port(
                             // 超时是正常的，检查累积缓冲区是否有数据需要发送
                             let current_time = std::time::Instant::now();
                             let time_since_last_send = current_time.duration_since(last_send_time);
-                            let should_send = accumulated_data.len() >= 32 || 
-                                              (accumulated_data.len() > 2 && time_since_last_send > Duration::from_millis(100));
+                            let should_send = accumulated_data.len() >= 32
+                                || (accumulated_data.len() > 2
+                                    && time_since_last_send > Duration::from_millis(100));
                             if should_send {
                                 if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
                                     app_handle_clone.emit("serial_data", message).ok();
@@ -195,19 +209,20 @@ fn open_serial_port(
                                 last_send_time = current_time;
                             }
                             thread::sleep(Duration::from_millis(10));
-                        },
+                        }
                         _ => {
                             // 发送错误信息
-                            let error_msg = format!("Error reading from port {}: {}", port_name_clone, e);
+                            let error_msg =
+                                format!("Error reading from port {}: {}", port_name_clone, e);
                             app_handle_clone.emit("serial_error", error_msg).ok();
                             // 发生致命错误时关闭端口
                             break;
                         }
                     }
-                },
+                }
             }
         }
-        
+
         // 确保在退出前发送剩余的数据
         if !accumulated_data.is_empty() {
             if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
@@ -221,34 +236,77 @@ fn open_serial_port(
                 app_handle_clone.emit("serial_data", hex_message).ok();
             }
         }
-        
+
         // 更新状态为已关闭
         if let Ok(mut state_guard) = state_clone.lock() {
-            state_guard.is_open = false;
+            if state_guard.generation == connection_generation {
+                state_guard.is_open = false;
+                state_guard.port = None;
+            }
         }
-        
+
         // 发送端口已关闭的事件
         let close_msg = format!("Port {} closed", port_name_clone);
         app_handle_clone.emit("serial_message", close_msg).ok();
     });
-    
+
     Ok(format!("Opening port {} at {} bps", port_name, baud_rate))
 }
 
 #[tauri::command]
-fn close_serial_port(
-    state: State<Arc<Mutex<SerialPortState>>>,
-) -> Result<String, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Failed to lock state: {}", e))?;
-    
+fn close_serial_port(state: State<Arc<Mutex<SerialPortState>>>) -> Result<String, String> {
+    let mut state_guard = state
+        .lock()
+        .map_err(|e| format!("Failed to lock state: {}", e))?;
+
     if !state_guard.is_open {
         return Err("No port is currently open".to_string());
     }
-    
-    let port_name = state_guard.port_name.clone().unwrap_or("unknown".to_string());
+
+    let port_name = state_guard
+        .port_name
+        .clone()
+        .unwrap_or("unknown".to_string());
     state_guard.is_open = false;
-    
+    state_guard.generation = state_guard.generation.wrapping_add(1);
+    state_guard.port = None;
+
     Ok(format!("Closing port {}", port_name))
+}
+
+/// 将原始字节写入当前串口。Vec<u8> 在前端对应 number[]。
+#[tauri::command]
+fn send_to_serial_port(
+    data: Vec<u8>,
+    state: State<Arc<Mutex<SerialPortState>>>,
+) -> Result<usize, String> {
+    if data.is_empty() {
+        return Ok(0);
+    }
+
+    let mut state_guard = state
+        .lock()
+        .map_err(|e| format!("Failed to lock state: {}", e))?;
+    if !state_guard.is_open {
+        return Err("No port is currently open".to_string());
+    }
+
+    let write_result = {
+        let port = state_guard
+            .port
+            .as_mut()
+            .ok_or_else(|| "Serial port writer is unavailable".to_string())?;
+        port.write_all(&data).and_then(|_| port.flush())
+    };
+
+    if let Err(error) = write_result {
+        state_guard.is_open = false;
+        state_guard.generation = state_guard.generation.wrapping_add(1);
+        state_guard.port = None;
+        return Err(format!("Failed to write to serial port: {}", error));
+    }
+
+    Ok(data.len())
 }
 
 #[tauri::command]
@@ -266,7 +324,7 @@ fn get_available_ports() -> Result<Vec<PortInfo>, String> {
                             } else {
                                 format!("{:?}", port.port_type)
                             }
-                        },
+                        }
                         _ => format!("{:?}", port.port_type),
                     },
                 })
@@ -282,7 +340,9 @@ fn get_available_ports() -> Result<Vec<PortInfo>, String> {
 fn get_serial_port_status(
     state: State<Arc<Mutex<SerialPortState>>>,
 ) -> Result<SerialPortStatusResponse, String> {
-    let state_guard = state.lock().map_err(|e| format!("Failed to lock state: {}", e))?;
+    let state_guard = state
+        .lock()
+        .map_err(|e| format!("Failed to lock state: {}", e))?;
     Ok(SerialPortStatusResponse {
         is_open: state_guard.is_open,
         port_name: state_guard.port_name.clone(),
@@ -297,7 +357,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(Arc::new(Mutex::new(SerialPortState::default())))
-        .invoke_handler(tauri::generate_handler![greet, get_available_ports, open_serial_port, close_serial_port, get_serial_port_status])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_available_ports,
+            open_serial_port,
+            close_serial_port,
+            send_to_serial_port,
+            get_serial_port_status
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
