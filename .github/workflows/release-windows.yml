@@ -1,0 +1,85 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    name: Build Windows installers and portable executable
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+
+      - name: Validate release version
+        shell: pwsh
+        run: |
+          $tagVersion = "${{ github.ref_name }}".Substring(1)
+          $tauriVersion = (Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
+          $packageVersion = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
+
+          if ($tagVersion -ne $tauriVersion -or $tagVersion -ne $packageVersion) {
+            throw "Tag version $tagVersion must match tauri.conf.json ($tauriVersion) and package.json ($packageVersion)."
+          }
+
+          "APP_VERSION=$tagVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build installers and create GitHub Release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Artemis ${{ github.ref_name }}
+          releaseBody: |
+            Windows release assets:
+            - Portable executable: no installation required
+            - NSIS setup executable
+            - WiX MSI installer
+          generateReleaseNotes: true
+          releaseDraft: false
+          prerelease: false
+          args: --bundles nsis,msi --config src-tauri/tauri.release.conf.json
+          releaseAssetNamePattern: Artemis_[version]_[arch][setup][ext]
+
+      - name: Prepare portable executable
+        shell: pwsh
+        run: |
+          $source = "src-tauri/target/release/artemis.exe"
+          $portable = "Artemis_${env:APP_VERSION}_x64_portable.exe"
+
+          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            throw "Portable executable was not found at $source"
+          }
+
+          Copy-Item -LiteralPath $source -Destination $portable
+          "PORTABLE_PATH=$portable" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload portable executable to GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" "$env:PORTABLE_PATH" --clobber
