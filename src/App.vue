@@ -13,7 +13,9 @@ import TitleBar from "./components/TitleBar.vue";
 <template>
   <div class="w-screen h-screen flex flex-col">
     <TitleBar />
-    <RouterView />
+    <main class="min-h-0 flex-1">
+      <RouterView />
+    </main>
     <Notification />
   </div>
 </template>
