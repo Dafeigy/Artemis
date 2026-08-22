@@ -7,6 +7,12 @@ export interface PortInfo {
   port_type: string
 }
 
+export interface SerialDeviceChange {
+  id: number
+  type: 'connected' | 'removed'
+  port: PortInfo
+}
+
 interface SerialStatus {
   port_name: string
   baud_rate: number
@@ -32,7 +38,10 @@ export const portLogs = reactive<Record<string, string[]>>({})
 
 const terminalBuffers = new Map<string, number[]>()
 const terminalSubscribers = new Set<(event: SerialBytesEvent) => void>()
+const deviceChangeSubscribers = new Set<(event: SerialDeviceChange) => void>()
 let initialized = false
+let hasCompletedPortScan = false
+let deviceChangeId = 0
 let refreshTimer: number | undefined
 let unlisteners: UnlistenFn[] = []
 
@@ -63,6 +72,11 @@ export const subscribeToTerminal = (subscriber: (event: SerialBytesEvent) => voi
   return () => terminalSubscribers.delete(subscriber)
 }
 
+export const subscribeToDeviceChanges = (subscriber: (event: SerialDeviceChange) => void) => {
+  deviceChangeSubscribers.add(subscriber)
+  return () => deviceChangeSubscribers.delete(subscriber)
+}
+
 export const clearPortLogs = (portName: string) => {
   portLogs[portName]?.splice(0)
 }
@@ -74,9 +88,28 @@ export const clearTerminalBuffer = (portName: string) => {
 export const refreshAvailablePorts = async () => {
   try {
     const ports = await invoke<PortInfo[]>('get_available_ports')
+    const previousPorts = new Map(availablePorts.value.map((port) => [port.name, port]))
+    const nextPortNames = new Set(ports.map((port) => port.name))
+
     availablePorts.value = ports
     ports.forEach((port) => ensurePortState(port.name))
     if (!selectedPortName.value && ports[0]) selectedPortName.value = ports[0].name
+
+    if (hasCompletedPortScan) {
+      const removedPorts = [...previousPorts.values()].filter((port) => !nextPortNames.has(port.name))
+      const connectedPorts = ports.filter((port) => !previousPorts.has(port.name))
+
+      for (const port of [...removedPorts, ...connectedPorts]) {
+        const event: SerialDeviceChange = {
+          id: ++deviceChangeId,
+          type: nextPortNames.has(port.name) ? 'connected' : 'removed',
+          port,
+        }
+        deviceChangeSubscribers.forEach((subscriber) => subscriber(event))
+      }
+    }
+
+    hasCompletedPortScan = true
   } catch (error) {
     console.error('Failed to scan serial ports:', error)
   }
@@ -148,6 +181,7 @@ export const disposeSerialWorkspace = () => {
   unlisteners.forEach((unlisten) => unlisten())
   unlisteners = []
   initialized = false
+  hasCompletedPortScan = false
 }
 
 export const isSerialPortOpen = computed({

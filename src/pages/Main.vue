@@ -62,7 +62,7 @@ onBeforeUnmount(disposeSerialWorkspace)
 
 <template>
   <SidebarProvider
-    class="h-full min-h-0 overflow-hidden bg-sidebar"
+    class="h-full min-h-0 overflow-hidden bg-transparent"
     :default-open="true"
     :style="{
       '--sidebar-width': '16rem',
@@ -71,11 +71,11 @@ onBeforeUnmount(disposeSerialWorkspace)
   >
     <AppSidebar :section="section" @select-section="selectSection" />
 
-    <SidebarInset class="min-h-0 overflow-hidden border border-sidebar-border/80 bg-background/95 shadow-sm backdrop-blur-xl">
+    <SidebarInset class="acrylic-panel min-h-0 overflow-hidden">
       <div class="flex h-full min-h-0 flex-col">
         <header
           data-tauri-drag-region
-          class="window-drag-region flex h-(--header-height) shrink-0 items-center gap-3 border-b border-border/60 bg-[#fbfbfc] pl-3 transition-colors dark:bg-[#151618] md:pl-4"
+          class="acrylic-header window-drag-region flex h-(--header-height) shrink-0 items-center gap-3 border-b border-border/50 pl-3 transition-colors md:pl-4"
         >
           <SidebarTrigger class="-ml-1 shrink-0" />
           <div class="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
@@ -97,15 +97,15 @@ onBeforeUnmount(disposeSerialWorkspace)
                   @click="toggleSelectedConnection"
                 >
                   <LoaderCircle v-if="togglingConnection" class="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                  <Power v-else class="size-4" :class="isSelectedPortOpen ? 'text-emerald-500' : ''" aria-hidden="true" />
+                  <Power v-else class="size-4" :class="isSelectedPortOpen ? 'text-success' : ''" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
                 {{ isSelectedPortOpen ? `关闭 ${selectedPortName}` : `打开 ${selectedPortName}` }}
               </TooltipContent>
             </Tooltip>
-            <span class="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground" :class="isSelectedPortOpen ? 'text-emerald-700 dark:text-emerald-300' : ''">
-              <span class="size-1.5 rounded-full" :class="isSelectedPortOpen ? 'bg-emerald-500' : 'bg-muted-foreground/40'" aria-hidden="true" />
+            <span class="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground" :class="isSelectedPortOpen ? 'text-success' : ''">
+              <span class="size-1.5 rounded-full" :class="isSelectedPortOpen ? 'bg-success' : 'bg-muted-foreground/40'" aria-hidden="true" />
               {{ isSelectedPortOpen ? '已连接' : '未连接' }}
             </span>
             <Tooltip>
@@ -164,7 +164,7 @@ onBeforeUnmount(disposeSerialWorkspace)
           <SettingsPanel v-else-if="section === 'settings'" class="h-full overflow-auto" @back="leaveSettings" />
 
           <section v-else class="grid h-full place-items-center overflow-auto p-8" aria-labelledby="about-title">
-            <div class="w-full max-w-xl rounded-2xl border bg-card/70 p-7 shadow-sm">
+            <div class="w-full max-w-xl rounded-2xl border bg-card/70 p-7">
               <div class="flex items-center gap-3">
                 <img
                   :src="appLogo"

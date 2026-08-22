@@ -60,7 +60,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="grid gap-4 rounded-xl border bg-card/70 p-5 shadow-sm">
+    <div class="grid gap-4 rounded-xl border bg-card/70 p-5">
       <div class="flex items-center gap-2">
         <MonitorCog class="size-4 text-muted-foreground" aria-hidden="true" />
         <h2 class="text-sm font-medium">外观</h2>
@@ -68,7 +68,7 @@ onMounted(() => {
       <SelectMode />
     </div>
 
-    <div class="grid gap-4 rounded-xl border bg-card/70 p-5 shadow-sm">
+    <div class="grid gap-4 rounded-xl border bg-card/70 p-5">
       <div class="flex items-center gap-2">
         <ImagePlus class="size-4 text-muted-foreground" aria-hidden="true" />
         <h2 class="text-sm font-medium">侧边栏头像</h2>

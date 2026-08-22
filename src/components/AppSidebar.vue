@@ -115,7 +115,7 @@ onBeforeUnmount(() => window.removeEventListener('artemis-avatar-change', update
                           >
                             <span
                               class="size-1.5 shrink-0 rounded-full"
-                              :class="openPortNames.has(port.name) ? 'bg-emerald-500 shadow-[0_0_8px_rgb(16_185_129_/_0.6)]' : 'bg-muted-foreground/35'"
+                              :class="openPortNames.has(port.name) ? 'bg-success shadow-[0_0_8px_color-mix(in_oklab,var(--success)_60%,transparent)]' : 'bg-muted-foreground/35'"
                               aria-hidden="true"
                             />
                             <span class="font-mono text-xs font-medium tracking-wide">{{ port.name }}</span>
@@ -151,7 +151,7 @@ onBeforeUnmount(() => window.removeEventListener('artemis-avatar-change', update
                                   @select="portBaudRates[port.name] = baud"
                                 >
                                   {{ baud }}
-                                  <span v-if="portBaudRates[port.name] === baud" class="text-emerald-500">●</span>
+                                  <span v-if="portBaudRates[port.name] === baud" class="text-success">●</span>
                               </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

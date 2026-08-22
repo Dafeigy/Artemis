@@ -10,9 +10,9 @@ const logContainer = ref<HTMLDivElement | null>(null)
 const logs = computed(() => portLogs[props.portName] ?? [])
 
 const entryClass = (message: string) => {
-  if (/\[w\]|\[warning\]/i.test(message)) return 'text-amber-700 dark:text-amber-300'
-  if (/\[e\]|\[error\]/i.test(message)) return 'text-red-700 dark:text-red-300'
-  if (/\[i\]|\[info\]/i.test(message)) return 'text-sky-700 dark:text-sky-300'
+  if (/\[w\]|\[warning\]/i.test(message)) return 'text-warning'
+  if (/\[e\]|\[error\]/i.test(message)) return 'text-destructive'
+  if (/\[i\]|\[info\]/i.test(message)) return 'text-info'
   return ''
 }
 
@@ -25,8 +25,8 @@ watch(
 </script>
 
 <template>
-  <section class="flex h-full min-h-0 flex-col overflow-hidden bg-[#fbfbfc] dark:bg-[#151618]" :aria-label="`${portName} 串口日志视图`">
-    <div id="log-container" ref="logContainer" class="custom-selection min-h-0 flex-1 overflow-auto p-4 font-mono text-sm leading-6">
+  <section class="flex h-full min-h-0 flex-col overflow-hidden bg-transparent" :aria-label="`${portName} 串口日志视图`">
+    <div id="log-container" ref="logContainer" class="themed-scrollbar custom-selection min-h-0 flex-1 overflow-auto p-4 font-mono text-sm leading-6">
       <pre v-for="(entry, index) in logs" :key="`${index}-${entry.length}`" class="whitespace-pre-wrap break-words" :class="entryClass(entry)">{{ entry }}</pre>
       <div v-if="logs.length === 0" class="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
         <ListRestart class="size-6 opacity-50" aria-hidden="true" />
@@ -54,10 +54,8 @@ footer {
   pointer-events: none;
 }
 footer > * { pointer-events: auto; }
-#log-container { scrollbar-color: transparent transparent; transition: scrollbar-color 0.2s ease; }
-#log-container:hover { scrollbar-color: color-mix(in oklab, currentColor 25%, transparent) transparent; }
-#log-container::-webkit-scrollbar { width: 6px; height: 6px; }
-#log-container::-webkit-scrollbar-track { background: transparent; }
-#log-container::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
-#log-container:hover::-webkit-scrollbar-thumb { background: color-mix(in oklab, currentColor 25%, transparent); }
+#log-container {
+  outline: none;
+  box-shadow: none;
+}
 </style>
