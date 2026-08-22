@@ -1,52 +1,45 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useColorMode } from '@vueuse/core'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { Eraser, Keyboard } from 'lucide-vue-next'
+import { Eraser } from 'lucide-vue-next'
 
-import { isSerialPortOpen } from '@/lib/serial'
 import Button from '@/components/ui/button/Button.vue'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  clearTerminalBuffer,
+  getTerminalBuffer,
+  openPortNames,
+  sendToPort,
+  subscribeToTerminal,
+} from '@/lib/serial'
 
 type LineEnding = 'cr' | 'lf' | 'crlf'
 
+const props = defineProps<{ portName: string }>()
 const host = ref<HTMLDivElement | null>(null)
 const lineEnding = ref<LineEnding>('cr')
 const localEcho = ref(false)
 const colorMode = useColorMode()
+const isOpen = computed(() => openPortNames.has(props.portName))
 
 let terminal: Terminal | null = null
 let fitAddon: FitAddon | null = null
 let resizeObserver: ResizeObserver | null = null
-let unlistenSerialData: UnlistenFn | null = null
+let unsubscribeTerminal: (() => void) | null = null
 let writeQueue = Promise.resolve()
 let reportedWriteError = false
 
 const terminalTheme = () => colorMode.value === 'dark'
   ? {
-      background: '#171719',
-      foreground: '#e7e7e9',
-      cursor: '#a9e5a9',
-      cursorAccent: '#171719',
-      selectionBackground: '#847cd066',
-      black: '#171719',
-      brightBlack: '#6b6b72',
-      green: '#8bd98b',
-      brightGreen: '#a9e5a9',
+      background: '#151618', foreground: '#e6e7e9', cursor: '#8ee6b1', cursorAccent: '#151618',
+      selectionBackground: '#4ade8060', black: '#151618', brightBlack: '#70737a', green: '#72d69a', brightGreen: '#8ee6b1',
     }
   : {
-      background: '#fbfbfc',
-      foreground: '#202124',
-      cursor: '#247a40',
-      cursorAccent: '#fbfbfc',
-      selectionBackground: '#7cd07c66',
-      black: '#202124',
-      brightBlack: '#686a70',
-      green: '#247a40',
-      brightGreen: '#2e9950',
+      background: '#fbfbfc', foreground: '#202124', cursor: '#18794e', cursorAccent: '#fbfbfc',
+      selectionBackground: '#22c55e40', black: '#202124', brightBlack: '#686a70', green: '#18794e', brightGreen: '#249f67',
     }
 
 const encodeInput = (data: string) => {
@@ -64,9 +57,9 @@ const renderLocalEcho = (data: string) => {
 }
 
 const sendInput = (data: string) => {
-  if (!isSerialPortOpen.value) {
+  if (!isOpen.value) {
     if (!reportedWriteError) {
-      terminal?.writeln('\r\n\x1b[33m[Artemis] 请先打开串口。\x1b[0m')
+      terminal?.writeln('\r\n\x1b[33m[Artemis] 请先打开当前串口。\x1b[0m')
       reportedWriteError = true
     }
     return
@@ -76,19 +69,28 @@ const sendInput = (data: string) => {
   renderLocalEcho(data)
   const bytes = Array.from(encodeInput(data))
   writeQueue = writeQueue
-    .then(() => invoke<number>('send_to_serial_port', { data: bytes }))
+    .then(() => sendToPort(props.portName, bytes))
     .then(() => undefined)
-    .catch((error) => {
-      terminal?.writeln(`\r\n\x1b[31m[Artemis] 发送失败: ${String(error)}\x1b[0m`)
-    })
+    .catch((error) => terminal?.writeln(`\r\n\x1b[31m[Artemis] 发送失败：${String(error)}\x1b[0m`))
 }
 
 const focusTerminal = () => terminal?.focus()
 
 const clearTerminal = () => {
+  clearTerminalBuffer(props.portName)
   terminal?.clear()
   terminal?.write('\x1b[2J\x1b[H')
   focusTerminal()
+}
+
+const renderPortBuffer = () => {
+  if (!terminal) return
+  terminal.reset()
+  terminal.options.theme = terminalTheme()
+  terminal.writeln(`\x1b[2mArtemis Interactive Terminal · ${props.portName}\x1b[0m`)
+  const buffer = getTerminalBuffer(props.portName)
+  if (buffer.length) terminal.write(buffer)
+  nextTick(() => fitAddon?.fit())
 }
 
 onMounted(async () => {
@@ -99,7 +101,7 @@ onMounted(async () => {
     cursorStyle: 'block',
     fontFamily: 'depature, Consolas, monospace',
     fontSize: 14,
-    lineHeight: 1.2,
+    lineHeight: 1.25,
     scrollback: 5000,
     theme: terminalTheme(),
   })
@@ -107,80 +109,85 @@ onMounted(async () => {
   terminal.loadAddon(fitAddon)
   terminal.open(host.value!)
   terminal.onData(sendInput)
-  terminal.writeln('\x1b[2mArtemis Interactive Terminal — 打开串口后可直接输入\x1b[0m')
+  renderPortBuffer()
 
   await nextTick()
   fitAddon.fit()
   terminal.focus()
-
   resizeObserver = new ResizeObserver(() => fitAddon?.fit())
   resizeObserver.observe(host.value!)
-
-  unlistenSerialData = await listen<number[]>('serial_data_bytes', (event) => {
-    terminal?.write(new Uint8Array(event.payload))
+  unsubscribeTerminal = subscribeToTerminal((event) => {
+    if (event.port_name === props.portName) terminal?.write(new Uint8Array(event.data))
   })
 })
 
 watch(colorMode, () => {
   if (terminal) terminal.options.theme = terminalTheme()
 })
-
-watch(isSerialPortOpen, (isOpen) => {
-  if (isOpen) {
+watch(() => props.portName, renderPortBuffer)
+watch(isOpen, (open) => {
+  if (open) {
     reportedWriteError = false
     nextTick(focusTerminal)
   }
 })
 
 onBeforeUnmount(() => {
-  unlistenSerialData?.()
+  unsubscribeTerminal?.()
   resizeObserver?.disconnect()
   terminal?.dispose()
 })
 </script>
 
 <template>
-  <section class="flex h-full min-h-0 flex-col overflow-hidden rounded-md border bg-[#fbfbfc] dark:bg-[#171719]" aria-label="交互式串口终端">
-    <div class="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
-      <div class="flex items-center gap-2 text-xs text-muted-foreground">
-        <Keyboard class="size-4" aria-hidden="true" />
-        <span>{{ isSerialPortOpen ? '键盘输入将直接发送到串口' : '打开串口后即可交互' }}</span>
-        <span class="flex items-center gap-1.5" :class="isSerialPortOpen ? 'text-green-700 dark:text-green-300' : ''">
-          <span class="size-1.5 rounded-full" :class="isSerialPortOpen ? 'bg-green-500' : 'bg-muted-foreground/50'" aria-hidden="true" />
-          {{ isSerialPortOpen ? '已连接' : '未连接' }}
-        </span>
-      </div>
+  <section class="flex h-full min-h-0 flex-col overflow-hidden bg-[#fbfbfc] dark:bg-[#151618]" :aria-label="`${portName} 交互式串口终端`">
+    <div ref="host" class="terminal-host min-h-0 min-w-0 flex-1 overflow-hidden p-2" tabindex="0" @click="focusTerminal" />
 
-      <div class="flex items-center gap-3 text-xs">
-        <label class="flex items-center gap-1.5 text-muted-foreground" for="terminal-line-ending">
+    <footer class="flex min-h-8 shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border/50 bg-transparent px-2 py-0.5 text-[11px] text-muted-foreground" aria-label="终端控制">
+        <label class="flex items-center gap-1 text-muted-foreground" for="terminal-line-ending">
           回车
-          <select id="terminal-line-ending" v-model="lineEnding" class="h-7 rounded border bg-background px-2 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <select id="terminal-line-ending" v-model="lineEnding" class="h-6 rounded border bg-transparent px-1.5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <option value="cr">CR</option>
             <option value="lf">LF</option>
             <option value="crlf">CRLF</option>
           </select>
         </label>
-        <label class="flex cursor-pointer items-center gap-1.5 text-muted-foreground">
-          <input v-model="localEcho" type="checkbox" class="size-3.5 accent-green-700" />
+        <label class="flex cursor-pointer items-center gap-1 text-muted-foreground">
+          <input v-model="localEcho" type="checkbox" class="size-3 accent-emerald-600" />
           本地回显
         </label>
-        <Button variant="ghost" size="sm" class="h-7 gap-1 px-2" title="清空终端" aria-label="清空终端" @click="clearTerminal">
-          <Eraser class="size-3.5" aria-hidden="true" />
-          清空
-        </Button>
-      </div>
-    </div>
-
-    <div ref="host" class="terminal-host min-h-0 flex-1 p-2" tabindex="0" @click="focusTerminal" />
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="sm" class="h-6 gap-1 px-1.5 text-[11px] text-muted-foreground" aria-label="清空终端" @click="clearTerminal">
+              <Eraser class="size-3" aria-hidden="true" />
+              清空
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>清空终端</TooltipContent>
+        </Tooltip>
+    </footer>
   </section>
 </template>
 
 <style scoped>
-.terminal-host :deep(.xterm) {
-  height: 100%;
+section { position: relative; }
+footer {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.25rem;
+  z-index: 10;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
 }
-
+footer > * { pointer-events: auto; }
+.terminal-host :deep(.xterm) { height: 100%; overflow: hidden; }
 .terminal-host :deep(.xterm-viewport) {
+  overflow-x: hidden !important;
+  background-color: #fbfbfc !important;
   scrollbar-width: thin;
 }
+:global(.dark) .terminal-host :deep(.xterm-viewport) { background-color: #151618 !important; }
 </style>

@@ -1,353 +1,332 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#![allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use serialport::{available_ports, SerialPort};
+use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager, State};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter, State};
 
-// COM端口信息结构体
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PortInfo {
     pub name: String,
     pub port_type: String,
 }
 
-// 串口连接状态（内部使用）
-#[allow(dead_code)]
-struct SerialPortState {
-    is_open: bool,
-    port_name: Option<String>,
-    baud_rate: Option<u32>,
-    port: Option<Box<dyn SerialPort>>,
+struct SerialConnection {
+    baud_rate: u32,
+    writer: Box<dyn SerialPort>,
     generation: u64,
 }
 
-// 串口状态API响应（用于前端）
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default)]
+struct SerialPortsState {
+    connections: HashMap<String, SerialConnection>,
+    next_generation: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct SerialPortStatusResponse {
-    pub is_open: bool,
-    pub port_name: Option<String>,
-    pub baud_rate: Option<u32>,
+    port_name: String,
+    baud_rate: u32,
+    is_open: bool,
 }
 
-// 实现默认值
-impl Default for SerialPortState {
-    fn default() -> Self {
-        Self {
-            is_open: false,
-            port_name: None,
-            baud_rate: None,
-            port: None,
-            generation: 0,
-        }
+#[derive(Clone, Serialize)]
+struct SerialBytesEvent {
+    port_name: String,
+    data: Vec<u8>,
+}
+
+#[derive(Clone, Serialize)]
+struct SerialTextEvent {
+    port_name: String,
+    data: String,
+}
+
+fn emit_accumulated(app: &AppHandle, port_name: &str, data: &mut Vec<u8>) {
+    if data.is_empty() {
+        return;
     }
+
+    let message = match String::from_utf8(data.clone()) {
+        Ok(message) => message,
+        Err(_) => format!(
+            "HEX: {}",
+            data.iter()
+                .map(|byte| format!("{:02X}", byte))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ),
+    };
+    app.emit(
+        "serial_data",
+        SerialTextEvent {
+            port_name: port_name.to_string(),
+            data: message,
+        },
+    )
+    .ok();
+    data.clear();
 }
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-/// 获取可用的COM端口列表
 #[tauri::command]
 fn open_serial_port(
     app_handle: AppHandle,
     port_name: &str,
     baud_rate: u32,
-    state: State<Arc<Mutex<SerialPortState>>>,
+    state: State<Arc<Mutex<SerialPortsState>>>,
 ) -> Result<String, String> {
-    // 同一时刻只允许打开一个端口。
-    let mut state_guard = state
-        .lock()
-        .map_err(|e| format!("Failed to lock state: {}", e))?;
-    if state_guard.is_open {
-        return Err(format!(
-            "Port {} is already open",
-            state_guard
-                .port_name
-                .as_ref()
-                .unwrap_or(&"unknown".to_string())
-        ));
-    }
-
-    // 分离读写句柄：读取线程独占 reader，writer 保存在共享状态中供 command 使用。
     let writer = serialport::new(port_name, baud_rate)
         .timeout(Duration::from_millis(20))
         .open()
-        .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+        .map_err(|error| format!("Failed to open port {}: {}", port_name, error))?;
     let mut reader = writer
         .try_clone()
-        .map_err(|e| format!("Failed to clone port {}: {}", port_name, e))?;
+        .map_err(|error| format!("Failed to clone port {}: {}", port_name, error))?;
 
-    state_guard.generation = state_guard.generation.wrapping_add(1);
-    let connection_generation = state_guard.generation;
-    state_guard.is_open = true;
-    state_guard.port_name = Some(port_name.to_string());
-    state_guard.baud_rate = Some(baud_rate);
-    state_guard.port = Some(writer);
-    drop(state_guard);
+    let generation = {
+        let mut guard = state
+            .lock()
+            .map_err(|error| format!("Failed to lock state: {}", error))?;
+        if guard.connections.contains_key(port_name) {
+            return Err(format!("Port {} is already open", port_name));
+        }
+        guard.next_generation = guard.next_generation.wrapping_add(1);
+        let generation = guard.next_generation;
+        guard.connections.insert(
+            port_name.to_string(),
+            SerialConnection {
+                baud_rate,
+                writer,
+                generation,
+            },
+        );
+        generation
+    };
 
-    // 克隆必要的变量以便在新线程中使用
-    let app_handle_clone = app_handle.clone();
-    let port_name_clone = port_name.to_string();
-    let state_clone = Arc::clone(&state);
+    let port_name = port_name.to_string();
+    let reader_port_name = port_name.clone();
+    let reader_state = Arc::clone(&state);
+    let reader_app = app_handle.clone();
 
-    // 创建一个新线程来读取串口数据
     thread::spawn(move || {
-        // 发送端口已打开的事件
-        let open_msg = format!("Port {} opened at {} bps", port_name_clone, baud_rate);
-        app_handle_clone.emit("serial_message", open_msg).ok();
+        reader_app
+            .emit(
+                "serial_message",
+                SerialTextEvent {
+                    port_name: reader_port_name.clone(),
+                    data: format!("Port {} opened at {} bps", reader_port_name, baud_rate),
+                },
+            )
+            .ok();
 
-        // 读取缓冲区
-        let mut buffer = [0; 1024];
-        // 累积缓冲区，用于收集完整的数据
-        let mut accumulated_data = Vec::new();
-        // 上次发送数据的时间
-        let mut last_send_time = std::time::Instant::now();
+        let mut buffer = [0_u8; 1024];
+        let mut accumulated = Vec::new();
+        let mut last_send = Instant::now();
 
-        // 持续读取数据
         loop {
-            // 检查端口是否仍应打开
-            {
-                let state_guard = match state_clone.lock() {
-                    Ok(guard) => guard,
-                    Err(_) => break,
-                };
-                if !state_guard.is_open || state_guard.generation != connection_generation {
+            let is_current = reader_state
+                .lock()
+                .map(|guard| {
+                    guard
+                        .connections
+                        .get(&reader_port_name)
+                        .is_some_and(|connection| connection.generation == generation)
+                })
+                .unwrap_or(false);
+            if !is_current {
+                break;
+            }
+
+            match reader.read(&mut buffer) {
+                Ok(bytes_read) if bytes_read > 0 => {
+                    let bytes = buffer[..bytes_read].to_vec();
+                    reader_app
+                        .emit(
+                            "serial_data_bytes",
+                            SerialBytesEvent {
+                                port_name: reader_port_name.clone(),
+                                data: bytes.clone(),
+                            },
+                        )
+                        .ok();
+                    accumulated.extend_from_slice(&bytes);
+                }
+                Ok(_) => thread::sleep(Duration::from_millis(10)),
+                Err(error) if error.kind() == std::io::ErrorKind::TimedOut => {
+                    thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => {
+                    reader_app
+                        .emit(
+                            "serial_error",
+                            SerialTextEvent {
+                                port_name: reader_port_name.clone(),
+                                data: format!("Error reading from port: {}", error),
+                            },
+                        )
+                        .ok();
                     break;
                 }
             }
 
-            // 尝试读取数据
-            match reader.read(&mut buffer) {
-                Ok(bytes_read) if bytes_read > 0 => {
-                    // 终端模式必须收到未经 UTF-8 转换和日志分段处理的原始字节。
-                    app_handle_clone
-                        .emit("serial_data_bytes", buffer[..bytes_read].to_vec())
-                        .ok();
-                    // 将读取的数据添加到累积缓冲区
-                    accumulated_data.extend_from_slice(&buffer[..bytes_read]);
-
-                    // 检查是否应该发送数据：
-                    // 1. 缓冲区中有足够的数据（超过32个字节）
-                    // 2. 距离上次发送已经超过100ms且累积数据超过2个字符（避免发送单个字符）
-                    let current_time = std::time::Instant::now();
-                    let time_since_last_send = current_time.duration_since(last_send_time);
-                    let should_send = accumulated_data.len() >= 32
-                        || (accumulated_data.len() > 2
-                            && time_since_last_send > Duration::from_millis(100));
-                    if should_send {
-                        // 尝试将累积的数据转换为字符串
-                        if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
-                            // 发送数据到前端
-                            app_handle_clone.emit("serial_data", message).ok();
-                        } else {
-                            // 如果不是有效的UTF-8，则发送十六进制表示
-                            let hex_data: Vec<String> = accumulated_data
-                                .iter()
-                                .map(|b| format!("{:02X}", b))
-                                .collect();
-                            let hex_message = format!("HEX: {}", hex_data.join(" "));
-                            app_handle_clone.emit("serial_data", hex_message).ok();
-                        }
-                        // 清空累积缓冲区并更新上次发送时间
-                        accumulated_data.clear();
-                        last_send_time = current_time;
-                    }
-                }
-                Ok(_) => {
-                    // 没有读取到数据，但检查累积缓冲区是否有数据需要发送
-                    let current_time = std::time::Instant::now();
-                    let time_since_last_send = current_time.duration_since(last_send_time);
-                    let should_send = accumulated_data.len() >= 32
-                        || (accumulated_data.len() > 2
-                            && time_since_last_send > Duration::from_millis(100));
-                    if should_send {
-                        // 发送累积的数据
-                        if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
-                            app_handle_clone.emit("serial_data", message).ok();
-                        } else {
-                            let hex_data: Vec<String> = accumulated_data
-                                .iter()
-                                .map(|b| format!("{:02X}", b))
-                                .collect();
-                            let hex_message = format!("HEX: {}", hex_data.join(" "));
-                            app_handle_clone.emit("serial_data", hex_message).ok();
-                        }
-                        accumulated_data.clear();
-                        last_send_time = current_time;
-                    }
-                    // 短暂休眠以避免CPU占用过高
-                    thread::sleep(Duration::from_millis(10));
-                }
-                Err(e) => {
-                    // 只处理致命错误，忽略临时错误（如超时）
-                    match e.kind() {
-                        std::io::ErrorKind::TimedOut => {
-                            // 超时是正常的，检查累积缓冲区是否有数据需要发送
-                            let current_time = std::time::Instant::now();
-                            let time_since_last_send = current_time.duration_since(last_send_time);
-                            let should_send = accumulated_data.len() >= 32
-                                || (accumulated_data.len() > 2
-                                    && time_since_last_send > Duration::from_millis(100));
-                            if should_send {
-                                if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
-                                    app_handle_clone.emit("serial_data", message).ok();
-                                } else {
-                                    let hex_data: Vec<String> = accumulated_data
-                                        .iter()
-                                        .map(|b| format!("{:02X}", b))
-                                        .collect();
-                                    let hex_message = format!("HEX: {}", hex_data.join(" "));
-                                    app_handle_clone.emit("serial_data", hex_message).ok();
-                                }
-                                accumulated_data.clear();
-                                last_send_time = current_time;
-                            }
-                            thread::sleep(Duration::from_millis(10));
-                        }
-                        _ => {
-                            // 发送错误信息
-                            let error_msg =
-                                format!("Error reading from port {}: {}", port_name_clone, e);
-                            app_handle_clone.emit("serial_error", error_msg).ok();
-                            // 发生致命错误时关闭端口
-                            break;
-                        }
-                    }
-                }
+            if accumulated.len() >= 32
+                || (accumulated.len() > 2 && last_send.elapsed() > Duration::from_millis(100))
+            {
+                emit_accumulated(&reader_app, &reader_port_name, &mut accumulated);
+                last_send = Instant::now();
             }
         }
 
-        // 确保在退出前发送剩余的数据
-        if !accumulated_data.is_empty() {
-            if let Ok(message) = String::from_utf8(accumulated_data.clone()) {
-                app_handle_clone.emit("serial_data", message).ok();
-            } else {
-                let hex_data: Vec<String> = accumulated_data
-                    .iter()
-                    .map(|b| format!("{:02X}", b))
-                    .collect();
-                let hex_message = format!("HEX: {}", hex_data.join(" "));
-                app_handle_clone.emit("serial_data", hex_message).ok();
+        emit_accumulated(&reader_app, &reader_port_name, &mut accumulated);
+        let removed_current = if let Ok(mut guard) = reader_state.lock() {
+            let should_remove = guard
+                .connections
+                .get(&reader_port_name)
+                .is_some_and(|connection| connection.generation == generation);
+            if should_remove {
+                guard.connections.remove(&reader_port_name);
             }
+            should_remove
+        } else {
+            false
+        };
+        if removed_current {
+            reader_app
+                .emit(
+                    "serial_message",
+                    SerialTextEvent {
+                        port_name: reader_port_name.clone(),
+                        data: format!("Port {} closed", reader_port_name),
+                    },
+                )
+                .ok();
+            reader_app
+                .emit(
+                    "serial_status_changed",
+                    SerialPortStatusResponse {
+                        port_name: reader_port_name,
+                        baud_rate,
+                        is_open: false,
+                    },
+                )
+                .ok();
         }
-
-        // 更新状态为已关闭
-        if let Ok(mut state_guard) = state_clone.lock() {
-            if state_guard.generation == connection_generation {
-                state_guard.is_open = false;
-                state_guard.port = None;
-            }
-        }
-
-        // 发送端口已关闭的事件
-        let close_msg = format!("Port {} closed", port_name_clone);
-        app_handle_clone.emit("serial_message", close_msg).ok();
     });
 
+    app_handle
+        .emit(
+            "serial_status_changed",
+            SerialPortStatusResponse {
+                port_name: port_name.clone(),
+                baud_rate,
+                is_open: true,
+            },
+        )
+        .ok();
     Ok(format!("Opening port {} at {} bps", port_name, baud_rate))
 }
 
 #[tauri::command]
-fn close_serial_port(state: State<Arc<Mutex<SerialPortState>>>) -> Result<String, String> {
-    let mut state_guard = state
-        .lock()
-        .map_err(|e| format!("Failed to lock state: {}", e))?;
-
-    if !state_guard.is_open {
-        return Err("No port is currently open".to_string());
-    }
-
-    let port_name = state_guard
-        .port_name
-        .clone()
-        .unwrap_or("unknown".to_string());
-    state_guard.is_open = false;
-    state_guard.generation = state_guard.generation.wrapping_add(1);
-    state_guard.port = None;
-
+fn close_serial_port(
+    app_handle: AppHandle,
+    port_name: &str,
+    state: State<Arc<Mutex<SerialPortsState>>>,
+) -> Result<String, String> {
+    let baud_rate = {
+        let mut guard = state
+            .lock()
+            .map_err(|error| format!("Failed to lock state: {}", error))?;
+        guard
+            .connections
+            .remove(port_name)
+            .map(|connection| connection.baud_rate)
+            .ok_or_else(|| format!("Port {} is not open", port_name))?
+    };
+    app_handle
+        .emit(
+            "serial_message",
+            SerialTextEvent {
+                port_name: port_name.to_string(),
+                data: format!("Port {} closed", port_name),
+            },
+        )
+        .ok();
+    app_handle
+        .emit(
+            "serial_status_changed",
+            SerialPortStatusResponse {
+                port_name: port_name.to_string(),
+                baud_rate,
+                is_open: false,
+            },
+        )
+        .ok();
     Ok(format!("Closing port {}", port_name))
 }
 
-/// 将原始字节写入当前串口。Vec<u8> 在前端对应 number[]。
 #[tauri::command]
 fn send_to_serial_port(
+    port_name: &str,
     data: Vec<u8>,
-    state: State<Arc<Mutex<SerialPortState>>>,
+    state: State<Arc<Mutex<SerialPortsState>>>,
 ) -> Result<usize, String> {
     if data.is_empty() {
         return Ok(0);
     }
 
-    let mut state_guard = state
+    let mut guard = state
         .lock()
-        .map_err(|e| format!("Failed to lock state: {}", e))?;
-    if !state_guard.is_open {
-        return Err("No port is currently open".to_string());
-    }
-
-    let write_result = {
-        let port = state_guard
-            .port
-            .as_mut()
-            .ok_or_else(|| "Serial port writer is unavailable".to_string())?;
-        port.write_all(&data).and_then(|_| port.flush())
-    };
-
-    if let Err(error) = write_result {
-        state_guard.is_open = false;
-        state_guard.generation = state_guard.generation.wrapping_add(1);
-        state_guard.port = None;
-        return Err(format!("Failed to write to serial port: {}", error));
-    }
-
+        .map_err(|error| format!("Failed to lock state: {}", error))?;
+    let connection = guard
+        .connections
+        .get_mut(port_name)
+        .ok_or_else(|| format!("Port {} is not open", port_name))?;
+    connection
+        .writer
+        .write_all(&data)
+        .and_then(|_| connection.writer.flush())
+        .map_err(|error| format!("Failed to write to {}: {}", port_name, error))?;
     Ok(data.len())
 }
 
 #[tauri::command]
 fn get_available_ports() -> Result<Vec<PortInfo>, String> {
-    match available_ports() {
-        Ok(ports) => {
-            let port_infos: Vec<PortInfo> = ports
-                .iter()
+    available_ports()
+        .map(|ports| {
+            ports
+                .into_iter()
                 .map(|port| PortInfo {
-                    name: port.port_name.clone(),
-                    port_type: match &port.port_type {
-                        serialport::SerialPortType::UsbPort(info) => {
-                            if let Some(product) = &info.product {
-                                product.clone()
-                            } else {
-                                format!("{:?}", port.port_type)
-                            }
-                        }
-                        _ => format!("{:?}", port.port_type),
+                    name: port.port_name,
+                    port_type: match port.port_type {
+                        serialport::SerialPortType::UsbPort(info) => info
+                            .product
+                            .unwrap_or_else(|| "USB serial device".to_string()),
+                        other => format!("{:?}", other),
                     },
                 })
-                .collect();
-            Ok(port_infos)
-        }
-        Err(e) => Err(format!("Failed to list serial ports: {}", e)),
-    }
+                .collect()
+        })
+        .map_err(|error| format!("Failed to list serial ports: {}", error))
 }
 
-/// 获取当前串口连接状态
 #[tauri::command]
 fn get_serial_port_status(
-    state: State<Arc<Mutex<SerialPortState>>>,
-) -> Result<SerialPortStatusResponse, String> {
-    let state_guard = state
+    state: State<Arc<Mutex<SerialPortsState>>>,
+) -> Result<Vec<SerialPortStatusResponse>, String> {
+    let guard = state
         .lock()
-        .map_err(|e| format!("Failed to lock state: {}", e))?;
-    Ok(SerialPortStatusResponse {
-        is_open: state_guard.is_open,
-        port_name: state_guard.port_name.clone(),
-        baud_rate: state_guard.baud_rate,
-    })
+        .map_err(|error| format!("Failed to lock state: {}", error))?;
+    Ok(guard
+        .connections
+        .iter()
+        .map(|(port_name, connection)| SerialPortStatusResponse {
+            port_name: port_name.clone(),
+            baud_rate: connection.baud_rate,
+            is_open: true,
+        })
+        .collect())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -356,9 +335,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(Arc::new(Mutex::new(SerialPortState::default())))
+        .manage(Arc::new(Mutex::new(SerialPortsState::default())))
         .invoke_handler(tauri::generate_handler![
-            greet,
             get_available_ports,
             open_serial_port,
             close_serial_port,

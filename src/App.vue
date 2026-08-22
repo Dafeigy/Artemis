@@ -1,19 +1,10 @@
-<script setup>
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-
-import Header from "./components/Header.vue";
-import Logger from "./components/Logger.vue";
-import ControlsBottom from "./components/ControlsBottom.vue";
+<script setup lang="ts">
 import Notification from "./components/Notification.vue";
-import TitleBar from "./components/TitleBar.vue";
-
 </script>
 
 <template>
-  <div class="w-screen h-screen flex flex-col">
-    <TitleBar />
-    <main class="min-h-0 flex-1">
+  <div class="h-screen w-screen overflow-hidden">
+    <main class="h-full min-h-0 overflow-hidden">
       <RouterView />
     </main>
     <Notification />
