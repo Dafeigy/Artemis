@@ -58,19 +58,19 @@
 :root {
   --radius: 0.75rem;
   /* Catppuccin Latte */
-  --background: rgb(239 241 245 / 0.72); /* base */
+  --background: rgb(239 241 245 / 0.56); /* base */
   --foreground: #4c4f69; /* text */
-  --card: rgb(230 233 239 / 0.74); /* mantle */
+  --card: rgb(230 233 239 / 0.60); /* mantle */
   --card-foreground: #4c4f69;
   --popover: rgb(239 241 245 / 0.94);
   --popover-foreground: #4c4f69;
   --primary: #1e66f5; /* blue */
   --primary-foreground: #eff1f5;
-  --secondary: rgb(220 224 232 / 0.72); /* crust */
+  --secondary: rgb(220 224 232 / 0.56); /* crust */
   --secondary-foreground: #4c4f69;
-  --muted: rgb(204 208 218 / 0.62); /* surface 0 */
+  --muted: rgb(204 208 218 / 0.52); /* surface 0 */
   --muted-foreground: #6c6f85; /* subtext 0 */
-  --accent: rgb(188 192 204 / 0.68); /* surface 1 */
+  --accent: rgb(188 192 204 / 0.58); /* surface 1 */
   --accent-foreground: #3c3f58;
   --destructive: #d20f39; /* red */
   --success: #2f8f4b; /* brighter light-mode green with readable contrast */
@@ -84,15 +84,16 @@
   --chart-3: #1e66f5;
   --chart-4: #df8e1d;
   --chart-5: #8839ef;
-  --sidebar: rgb(230 233 239 / 0.64);
+  --sidebar: rgb(230 233 239 / 0.48);
   --sidebar-foreground: #4c4f69;
   --sidebar-primary: #1e66f5;
   --sidebar-primary-foreground: #eff1f5;
-  --sidebar-accent: rgb(204 208 218 / 0.72);
+  --sidebar-accent: rgb(204 208 218 / 0.60);
   --sidebar-accent-foreground: #3c3f58;
   --sidebar-border: rgb(156 160 176 / 0.52);
   --sidebar-ring: #7287fd;
-  --acrylic-tint: rgb(239 241 245 / 0.56);
+  --acrylic-tint: rgb(239 241 245 / 0.18);
+  --acrylic-header-tint: rgb(239 241 245 / 0.12);
   --scrollbar-thumb: rgb(156 160 176 / 0.52); /* overlay 0 */
   --scrollbar-thumb-hover: rgb(124 127 147 / 0.72); /* overlay 2 */
   --scrollbar-thumb-active: rgb(114 135 253 / 0.82); /* lavender */
@@ -100,19 +101,19 @@
 
 .dark {
   /* Catppuccin Mocha */
-  --background: rgb(30 30 46 / 0.72); /* base */
+  --background: rgb(30 30 46 / 0.56); /* base */
   --foreground: #cdd6f4; /* text */
-  --card: rgb(24 24 37 / 0.72); /* mantle */
+  --card: rgb(24 24 37 / 0.60); /* mantle */
   --card-foreground: #cdd6f4;
   --popover: rgb(30 30 46 / 0.94);
   --popover-foreground: #cdd6f4;
   --primary: #89b4fa; /* blue */
   --primary-foreground: #11111b;
-  --secondary: rgb(17 17 27 / 0.68); /* crust */
+  --secondary: rgb(17 17 27 / 0.54); /* crust */
   --secondary-foreground: #cdd6f4;
-  --muted: rgb(49 50 68 / 0.72); /* surface 0 */
+  --muted: rgb(49 50 68 / 0.58); /* surface 0 */
   --muted-foreground: #a6adc8; /* subtext 0 */
-  --accent: rgb(69 71 90 / 0.76); /* surface 1 */
+  --accent: rgb(69 71 90 / 0.62); /* surface 1 */
   --accent-foreground: #f5e0dc;
   --destructive: #f38ba8; /* red */
   --success: #a6e3a1; /* green */
@@ -126,15 +127,16 @@
   --chart-3: #89b4fa;
   --chart-4: #f9e2af;
   --chart-5: #cba6f7;
-  --sidebar: rgb(24 24 37 / 0.66);
+  --sidebar: rgb(24 24 37 / 0.50);
   --sidebar-foreground: #cdd6f4;
   --sidebar-primary: #89b4fa;
   --sidebar-primary-foreground: #11111b;
-  --sidebar-accent: rgb(49 50 68 / 0.78);
+  --sidebar-accent: rgb(49 50 68 / 0.64);
   --sidebar-accent-foreground: #f5e0dc;
   --sidebar-border: rgb(108 112 134 / 0.44);
   --sidebar-ring: #b4befe;
-  --acrylic-tint: rgb(30 30 46 / 0.58);
+  --acrylic-tint: rgb(30 30 46 / 0.20);
+  --acrylic-header-tint: rgb(30 30 46 / 0.14);
   --scrollbar-thumb: rgb(108 112 134 / 0.56); /* overlay 0 */
   --scrollbar-thumb-hover: rgb(147 153 178 / 0.72); /* overlay 2 */
   --scrollbar-thumb-active: rgb(180 190 254 / 0.82); /* lavender */
@@ -196,7 +198,7 @@
   }
 
   .acrylic-header {
-    background: var(--background);
+    background: var(--acrylic-header-tint);
   }
 
   /* Shared native scrollbar treatment for logs and xterm's viewport. */
