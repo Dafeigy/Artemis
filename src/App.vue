@@ -4,7 +4,7 @@ import Notification from "./components/Notification.vue";
 </script>
 
 <template>
-  <div class="app-acrylic h-screen w-screen overflow-hidden rounded-xl">
+  <div class="app-acrylic h-screen w-screen overflow-hidden">
     <main class="h-full min-h-0 overflow-hidden">
       <RouterView />
     </main>

@@ -8,6 +8,13 @@ import Logger from '@/components/Logger.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import WindowControls from '@/components/WindowControls.vue'
 import Button from '@/components/ui/button/Button.vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -24,6 +31,7 @@ type ReturnableSection = Exclude<AppSection, 'settings'>
 
 const section = ref<AppSection>('connection')
 const sectionBeforeSettings = ref<ReturnableSection>('connection')
+const aboutDialogOpen = ref(false)
 const workspaceMode = ref<WorkspaceMode>('terminal')
 const togglingConnection = ref(false)
 const isSelectedPortOpen = computed(() => openPortNames.has(selectedPortName.value))
@@ -69,7 +77,11 @@ onBeforeUnmount(disposeSerialWorkspace)
       '--header-height': '3rem',
     }"
   >
-    <AppSidebar :section="section" @select-section="selectSection" />
+    <AppSidebar
+      :section="section"
+      @select-section="selectSection"
+      @show-about="aboutDialogOpen = true"
+    />
 
     <SidebarInset class="acrylic-panel min-h-0 overflow-hidden">
       <div class="flex h-full min-h-0 flex-col">
@@ -79,10 +91,9 @@ onBeforeUnmount(disposeSerialWorkspace)
         >
           <SidebarTrigger class="-ml-1 shrink-0" />
           <div class="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
-          <div v-if="section !== 'connection'" data-tauri-drag-region class="min-w-0 select-none">
+          <div v-if="section === 'settings'" data-tauri-drag-region class="min-w-0 select-none">
             <p class="truncate text-sm font-medium">
-              <template v-if="section === 'settings'">设置</template>
-              <template v-else>关于 Artemis</template>
+              设置
             </p>
           </div>
 
@@ -161,36 +172,40 @@ onBeforeUnmount(disposeSerialWorkspace)
             </div>
           </template>
 
-          <SettingsPanel v-else-if="section === 'settings'" class="h-full overflow-auto" @back="leaveSettings" />
-
-          <section v-else class="grid h-full place-items-center overflow-auto p-8" aria-labelledby="about-title">
-            <div class="w-full max-w-xl rounded-2xl border bg-card/70 p-7">
-              <div class="flex items-center gap-3">
-                <img
-                  :src="appLogo"
-                  alt="Artemis Logo"
-                  class="size-12 shrink-0 rounded-xl object-cover ring-1 ring-border"
-                />
-                <div class="min-w-0 leading-tight">
-                  <h1 id="about-title" class="truncate text-2xl font-semibold">Artemis</h1>
-                  <p class="mt-1 truncate font-mono text-xs tracking-wide text-muted-foreground">Serial workspace</p>
-                </div>
-              </div>
-              <p class="mt-5 text-sm leading-6 text-muted-foreground">一个简单好看且使用的串口调试小工具。</p>
-              <a
-                class="mt-6 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                href="https://github.com/Dafeigy/artemis"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Github class="size-4" aria-hidden="true" />
-                项目主页
-              </a>
-            </div>
-          </section>
+          <SettingsPanel v-else class="h-full overflow-auto" @back="leaveSettings" />
         </main>
       </div>
     </SidebarInset>
+
+    <Dialog v-model:open="aboutDialogOpen">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <div class="flex items-center gap-3 pr-8">
+            <img
+              :src="appLogo"
+              alt="Artemis Logo"
+              class="size-12 shrink-0 rounded-xl object-cover ring-1 ring-border"
+            />
+            <div class="min-w-0 text-left leading-tight">
+              <DialogTitle class="truncate text-2xl">Artemis</DialogTitle>
+              <p class="mt-1 truncate font-mono text-xs tracking-wide text-muted-foreground">Serial workspace</p>
+            </div>
+          </div>
+          <DialogDescription class="pt-2 text-left leading-6">
+            简单、好看且实用的串口调试小工具。
+          </DialogDescription>
+        </DialogHeader>
+        <a
+          class="inline-flex h-9 w-fit cursor-pointer items-center gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          href="https://github.com/Dafeigy/artemis"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Github class="size-4" aria-hidden="true" />
+          项目主页
+        </a>
+      </DialogContent>
+    </Dialog>
   </SidebarProvider>
 </template>
 

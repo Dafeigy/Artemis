@@ -34,7 +34,6 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail,
 } from '@/components/ui/sidebar'
 import {
   availablePorts,
@@ -44,10 +43,13 @@ import {
   selectedPortName,
 } from '@/lib/serial'
 
-export type AppSection = 'connection' | 'settings' | 'about'
+export type AppSection = 'connection' | 'settings'
 
 defineProps<{ section: AppSection }>()
-const emit = defineEmits<{ selectSection: [section: AppSection] }>()
+const emit = defineEmits<{
+  selectSection: [section: AppSection]
+  showAbout: []
+}>()
 const avatarUrl = ref(localStorage.getItem('userAvatar') || appLogo)
 
 const selectPort = (portName: string) => {
@@ -185,14 +187,13 @@ onBeforeUnmount(() => window.removeEventListener('artemis-avatar-change', update
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip="关于" :is-active="section === 'about'" @click="emit('selectSection', 'about')">
+          <SidebarMenuButton tooltip="关于" @click="emit('showAbout')">
             <CircleHelp aria-hidden="true" />
             <span>关于</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
-    <SidebarRail />
   </Sidebar>
 </template>
 

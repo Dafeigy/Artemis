@@ -60,16 +60,16 @@ onBeforeUnmount(() => {
         v-if="visible && current"
         :key="current.id"
         role="status"
-        class="device-dialog w-full max-w-72 overflow-hidden rounded-2xl border border-border/70 bg-popover/95 px-5 pb-5 pt-4 text-center text-popover-foreground shadow-2xl shadow-foreground/10 backdrop-blur-xl"
+        class="device-dialog w-full max-w-80 overflow-hidden rounded-2xl border border-border/70 bg-popover/95 px-6 pb-6 pt-5 text-center text-popover-foreground shadow-2xl shadow-foreground/10 backdrop-blur-xl"
       >
         <div
-          class="device-scene relative mx-auto h-24 w-56 overflow-hidden rounded-xl border bg-muted/35"
+          class="device-scene relative mx-auto h-28 w-60 overflow-hidden rounded-xl border bg-muted/35"
           :class="isConnected ? 'is-connected' : 'is-removed'"
           aria-hidden="true"
         >
           <div class="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_center,var(--border)_1px,transparent_1px)] [background-size:12px_12px]" />
 
-          <div class="device-body absolute right-5 top-1/2 z-20 flex h-14 w-20 -translate-y-1/2 items-center justify-center rounded-xl border bg-card shadow-sm">
+          <div class="device-body absolute right-5 top-1/2 z-20 flex h-16 w-24 -translate-y-1/2 items-center justify-center rounded-xl border bg-card shadow-sm">
             <Usb class="size-6 text-muted-foreground" :class="isConnected ? 'device-usb-icon text-success' : ''" />
             <span class="absolute -left-1 top-1/2 h-5 w-1 -translate-y-1/2 rounded-l bg-foreground/70" />
           </div>
@@ -83,10 +83,9 @@ onBeforeUnmount(() => {
             </span>
           </div>
 
-          <span class="connection-point absolute right-25 top-1/2 z-30 size-3 -translate-y-1/2 rounded-full bg-success shadow-[0_0_16px_var(--success)]" />
         </div>
 
-        <div class="mt-4 flex items-center justify-center gap-2">
+        <div class="mt-5 flex items-center justify-center gap-2">
           <span
             class="size-2 rounded-full"
             :class="isConnected ? 'bg-success' : 'bg-muted-foreground/50'"
@@ -116,19 +115,11 @@ onBeforeUnmount(() => {
 }
 
 .is-connected .usb-cable {
-  animation: plug-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: plug-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .is-removed .usb-cable {
-  animation: unplug 420ms cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-.connection-point {
-  opacity: 0;
-}
-
-.is-connected .connection-point {
-  animation: connection-pulse 420ms 260ms ease-out both;
+  animation: unplug 800ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .is-connected .device-usb-icon {
@@ -145,12 +136,6 @@ onBeforeUnmount(() => {
   to { transform: translate(-28px, -50%); }
 }
 
-@keyframes connection-pulse {
-  0% { opacity: 0; scale: 0.5; }
-  45% { opacity: 1; scale: 1.35; }
-  100% { opacity: 1; scale: 1; }
-}
-
 @keyframes icon-wake {
   from { opacity: 0.45; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
@@ -163,7 +148,6 @@ onBeforeUnmount(() => {
   }
 
   .usb-cable,
-  .connection-point,
   .device-usb-icon {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;

@@ -73,7 +73,7 @@
   --accent: rgb(188 192 204 / 0.68); /* surface 1 */
   --accent-foreground: #3c3f58;
   --destructive: #d20f39; /* red */
-  --success: #287e3e; /* accessible Latte green */
+  --success: #2f8f4b; /* brighter light-mode green with readable contrast */
   --warning: #9a5700; /* accessible Latte peach */
   --info: #1e66f5;
   --border: rgb(156 160 176 / 0.52); /* overlay 0 */

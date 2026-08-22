@@ -94,7 +94,7 @@ onUnmounted(() => {
                 <Settings class="size-5" aria-hidden="true" />
                 关于 Artemis
               </DialogTitle>
-              <DialogDescription>用于串口日志监视和交互式终端操作。</DialogDescription>
+              <DialogDescription>简单、好看且实用的串口调试小工具。</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <DialogClose as-child>
